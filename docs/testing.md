@@ -599,10 +599,22 @@ podman exec pt-e2e mount --make-rshared /
   timing (missing, present, a host that blinks back); the once-per-login
   marker and its login key (a fake logind's display session, else the
   bus's ID).
-- `internal/platform/packagekit`: a fake PackageKit on a private bus:
-  `Resolve` then `InstallPackages` with the expected filter, flags and
-  hint; an installed package is not installed again; not found, prompt
-  dismissed (`not-authorized`), no PackageKit at all.
+- `internal/dnssetup` ("Enable DNS support…"): `Check` accepts exactly
+  the supported setup and refuses every other one with a reason (another
+  distribution, no systemd or apt, resolved installed or running,
+  resolvconf, no NetworkManager or an unusual DNS setup in it, networkd,
+  a missing, linked or hand-written `/etc/resolv.conf`, no working DNS,
+  an unfinished earlier switch). Backup and restore round trip on a fake
+  root (the link the package makes, a new settings file and an edited
+  nsswitch.conf all go back; a damaged copy is refused). `Enable`
+  against a fake system whose installs and removals change the files the
+  way Debian's package scripts do: works at once, the Debian race (a
+  restart fixes it), NetworkManager needs a nudge, names never resolve
+  (everything undone, files byte for byte as before), install fails, the
+  undo fails too (manual steps), unsupported (nothing touched), SIGTERM
+  in the middle, and `Undo` after a switch and after a crash.
+- `cmd/penguintier-dns-helper`: usage and the root check (exit 2),
+  `check` prints its JSON, the exit code of every outcome.
 - `internal/doctor`: `Evaluate` table tests for every verdict (token
   missing, unsafe or rejected; service down or not installed; GNOME
   without the extension or with it off; no session bus; no notification
@@ -611,7 +623,7 @@ podman exec pt-e2e mount --make-rshared /
   by networkd), the fixed check IDs, the JSON shape and the text layout,
   and the polkit agent search on a fake `/proc`.
 - `internal/tray`: new golden menus `dns-no-resolved` (with "Enable DNS
-  support…"), `dns-enabling` ("Installing systemd-resolved…"),
+  support…"), `dns-enabling` ("Switching DNS to systemd-resolved…"),
   `dns-daemon-off`, `dns-link-managed`, `dns-pending`; every other golden
   menu now has the DNS rows too. `TestDNSRow` checks the row for every
   state. Controller tests: the first-run prompt (once, only with
@@ -624,7 +636,11 @@ podman exec pt-e2e mount --make-rshared /
   `doctor` exit codes and JSON, `deauthorize` (yes, no, EOF,
   `--yes`, nothing to delete), state.json, the Start at Login rules, the
   pkexec flow with a fake `pkexec` and token helper (0, 126, 127, helper
-  exit codes 1 and 3), and the zenity/kdialog question.
+  exit codes 1 and 3), and "Enable DNS support…": the zenity/kdialog
+  question and its text (every backed-up file, the check, the undo), the
+  refusal dialog on an unsupported setup (pkexec never runs), and how each
+  helper outcome is reported. Test programs only ever find their fakes on
+  `$PATH`, never a real zenity or pkexec.
 
 ### Running it by hand without touching your setup
 
@@ -718,23 +734,63 @@ are all in place. Quit any running Penguintier first.
 6. **Deauthorize.** `penguintier deauthorize` asks, `y` deletes the copy;
    `penguintier deauthorize --yes` when there is none says there is
    nothing to do.
-7. **Enable DNS support** (Debian without systemd-resolved; this switches
-   the machine's DNS to systemd-resolved). Make the self-test network
-   (`scripts/zt-selftest-network.sh`, see P4), start its DNS server and
-   turn on "Allow DNS Configuration" for it in the tray. Its submenu shows
-   "DNS: waiting for systemd-resolved", and the menu offers "Enable DNS
-   support…". Click it: a question explains the DNS switch; Install → the
-   PackageKit password prompt → "Installing systemd-resolved…" → a "DNS
-   support is on" notification. Within seconds the row shows "DNS:
-   applied", and:
+7. **Enable DNS support.** This switches the whole machine's DNS, so
+   run the DNS switch lab (below) first and only go on when it passes.
+   Before starting, write down the way back and keep a second device
+   handy:
 
    ```
-   resolvectl query host.pt.test     # the self-test address, via the zt interface
-   resolvectl query example.com      # still answered: normal DNS keeps working
+   pkexec /usr/libexec/penguintier/penguintier-dns-helper undo     # Penguintier's own undo
+   sudo cp /var/lib/penguintier/dns-backup/resolv.conf /etc/resolv.conf   # if that can't run
    ```
 
-   Cancel in the question, or close the password prompt: nothing is
-   installed and the entry stays.
+   Then make the self-test network (`scripts/zt-selftest-network.sh`, see
+   P4), start its DNS server and turn on "Allow DNS Configuration" for it
+   in the tray. Its submenu shows "DNS: waiting for systemd-resolved", and
+   the menu offers "Enable DNS support…". Click it:
+   - On an unsupported setup a dialog lists why and nothing changes.
+   - Otherwise the question lists the backed-up files and the automatic
+     undo. Switch → one password prompt → "Switching DNS to
+     systemd-resolved…" → "DNS support is on". The row shows "DNS:
+     applied", and `resolvectl query host.pt.test` and
+     `getent ahosts debian.org` both work. `penguintier doctor` shows the
+     switch ("DNS switch") and the undo command.
+   - Cancel, or close the password prompt: nothing changes.
+
+### DNS switch lab
+
+`scripts/dns-lab/run.sh` tests penguintier-dns-helper in disposable
+podman containers (Debian 13 with systemd, D-Bus, polkit, udev and
+NetworkManager), never on the machine running it. NetworkManager owns
+`eth1` and gets its address and DNS server by DHCP from a fake router
+(dnsmasq in its own network namespace) that answers `check.pt-lab`, like
+a desktop on Wi-Fi.
+
+```
+scripts/dns-lab/run.sh                  # all scenarios, a few minutes
+scripts/dns-lab/run.sh rollback crash   # some of them
+```
+
+| Scenario | What happens | Must end with |
+|---|---|---|
+| `enable-undo` | switch on, then `undo` | resolved gets NetworkManager's server; after the undo the files are byte for byte as before and the package is purged |
+| `rollback` | a firewall rule drops resolved's DNS packets, so names stop resolving after the switch | the helper undoes everything itself (exit 1, `rolled-back`) |
+| `sigterm` | SIGTERM while it waits | undone, "interrupted" |
+| `crash` | SIGKILL during the install | `check` refuses until `undo`; `undo` restores everything |
+| `crash-busy` | SIGKILL during the install, `undo` at once while apt-get still runs | `undo` waits for dpkg's lock, then restores everything, and nothing changes 10 s later |
+| `refuse` | hand-written resolv.conf, no working DNS, NetworkManager stopped | refused (exit 3), no backup, nothing installed |
+
+Every scenario checks that names resolve at the end.
+
+Found with it (Debian 13, systemd 257): the package's install script
+starts resolved before D-Bus knows its user (`Unknown username
+"systemd-resolve" in message bus configuration file`), so resolved runs
+without its bus name and gets no DNS servers; the helper restarts it.
+Removing the package rebuilds `/etc/resolv.conf` from resolved's server
+list (empty in that case), which is why the helper restores its backup
+afterwards. NetworkManager (1.52, `dns=default`, `rc-manager=symlink`)
+hands its DNS to resolved by itself once resolved has its bus name; no
+reload was needed in the lab.
 
 ## P6: Packaging
 
