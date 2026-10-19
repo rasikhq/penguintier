@@ -1,0 +1,88 @@
+/* Placeholder styles from P0. Phase P2 designs the real look. */
+:root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1f2937;
+    --muted: #6b7280;
+    --border: #d1d5db;
+    --accent: #2563eb;
+    --error: #b91c1c;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #1f2937;
+        --fg: #f9fafb;
+        --muted: #9ca3af;
+        --border: #4b5563;
+        --accent: #60a5fa;
+        --error: #fca5a5;
+    }
+}
+
+html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", "Cantarell", "Ubuntu", sans-serif;
+}
+
+.window {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.25rem;
+}
+
+h1 {
+    margin: 0 0 0.25rem;
+    font-size: 1.25rem;
+}
+
+p {
+    margin: 0;
+}
+
+.note {
+    color: var(--muted);
+    font-size: 0.875rem;
+}
+
+.error {
+    color: var(--error);
+    font-size: 0.875rem;
+    min-height: 1.25em; /* room for one line of error text */
+}
+
+input {
+    padding: 0.5rem;
+    font: inherit;
+    font-family: ui-monospace, monospace;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+}
+
+.buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+button {
+    padding: 0.4rem 1rem;
+    font: inherit;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+button[type="submit"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+}
