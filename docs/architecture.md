@@ -21,7 +21,7 @@ It has two Go modules:
 | `github.com/rasikhq/penguintier/ui` | `ui/` | yes (GTK + WebKitGTK) | the Wails v2 + React/TypeScript Join and About windows |
 
 `ui/` is its own module so the main binaries stay static. Running
-`go build ./...` from the repo root does not include `ui/`; use
+`go build ./...` from the repo root does not include `ui/`, so use
 `make ui-build` for it.
 
 ## Binaries
@@ -44,7 +44,7 @@ It has two Go modules:
 | `internal/ztapi` | Local API client: models (`NetworkID`, `Status` with an "unknown" fallback), token and port discovery, `net/http` client (`Proxy: nil`, 2 s timeout), typed errors (`ErrNotInstalled`, `ErrServiceDown`, `ErrTokenMissing`, `ErrUnauthorized`, timeouts, protocol and HTTP errors), and the saved-networks store, including a one-time import of DesktopUI's `~/.zerotier_ui/saved_networks.json`. |
 | `internal/ztapi/ztmock` | A fake ZeroTier API (`http.Handler`) with the seven scenarios of `zt-mock`. Importable, so other packages' tests (the tray's golden menus, the DNS daemon) run against it through `httptest`. `cmd/zt-mock` is a thin command around it. |
 | `internal/resolved` | systemd-resolved over D-Bus: `SetLinkDNS`, `SetLinkDomains` (routing-only `~domain`), `SetLinkDefaultRoute(false)`, `RevertLink`, link property reads, `Available()`. |
-| `internal/dnsrule` | Which networks get DNS applied, and with what (`Check`): allowDNS on, status OK, an interface, a valid domain and server. Pure; the DNS daemon, the tray and `doctor` all use it. |
+| `internal/dnsrule` | Which networks get DNS applied, and with what (`Check`): allowDNS on, status OK, an interface, a valid domain and server. It is pure, and the DNS daemon, the tray and `doctor` all use it. |
 | `internal/dnsstatus` | Each network's DNS state (`Evaluate`, pure) from facts read unprivileged over the system bus (`Probe`): resolve1 link properties, `penguintier-dnsd.service`'s `ActiveState` (systemd1), and whether systemd-networkd manages the link (network1). |
 | `internal/tray` | View model, a pure menu builder `Build(ViewModel) []Node`, and the controller. |
 | `internal/doctor` | The report behind `penguintier doctor [--json]`: `Gather` (I/O) → `Facts` → `Evaluate` (pure) → `Report`. |
@@ -54,13 +54,13 @@ It has two Go modules:
 | `internal/platform/autostart` | The "Start at Login" autostart file. |
 | `internal/platform/instance` | Single instance through a D-Bus name. |
 | `internal/platform/watcher` | Is a tray host (`org.kde.StatusNotifierWatcher`) running? The GNOME AppIndicator extension's state, and fix steps per desktop and distribution. |
-| `internal/dnssetup` | "Enable DNS support…": which setups are supported (`Check`, pure), the backup and restore of the affected files, and the switch with its automatic undo (`Enable`, `Undo`). The tray uses the check; `penguintier-dns-helper` runs the rest as root. |
+| `internal/dnssetup` | "Enable DNS support…": which setups are supported (`Check`, pure), the backup and restore of the affected files, and the switch with its automatic undo (`Enable`, `Undo`). The tray uses the check, and `penguintier-dns-helper` runs the rest as root. |
 
 ## Contracts
 
 ### Identity
 
-- **App ID:** `io.github.rasikhq.Penguintier`. It is used for:
+- The app ID is `io.github.rasikhq.Penguintier`. It is used for:
   - the .desktop file name and the app icon name,
   - the D-Bus single-instance name,
   - the program name of the Join and About windows, which gives their
@@ -68,8 +68,8 @@ It has two Go modules:
     `ui/progname.go`, called before GTK starts), matched by
     `StartupWMClass` in the .desktop file,
   - the polkit action prefix (`io.github.rasikhq.Penguintier.read-token`).
-- The README and the About window say that Penguintier is unofficial and
-  not affiliated with ZeroTier, Inc.
+- The README and the About window say that Penguintier is an unofficial
+  app and is not affiliated with ZeroTier, Inc.
 
 ### Install paths
 
@@ -82,7 +82,7 @@ It has two Go modules:
   1. `$PENGUINTIER_LIBEXEC_DIR`
   2. the directory of the running `penguintier` binary
   3. `/usr/libexec/penguintier`
-- Note: `pkexec` needs the real installed path to match the policy's
+- `pkexec` needs the real installed path to match the policy's
   `exec.path` annotation, so the token helper only works through polkit
   from `/usr/libexec/penguintier` (see `make dev-install-helper`).
 
@@ -90,13 +90,13 @@ It has two Go modules:
 
 | Variable | Meaning |
 |---|---|
-| `PENGUINTIER_API_URL` | Base URL of the ZeroTier API, e.g. `http://127.0.0.1:9993`. Overrides port discovery; used with `zt-mock`. |
+| `PENGUINTIER_API_URL` | Base URL of the ZeroTier API, e.g. `http://127.0.0.1:9993`. Overrides port discovery. Used with `zt-mock`. |
 | `PENGUINTIER_TOKEN_FILE` | Read the API token from this file first. |
 | `PENGUINTIER_LIBEXEC_DIR` | Where to find `penguintier-ui`, `penguintier-token-helper` and `penguintier-dns-helper`. |
-| `PENGUINTIER_LOG` | Log level: `debug`, `info` (default), `warn`, `error`. Only `penguintier-dnsd` reads it so far; the tray logs at `info`. |
+| `PENGUINTIER_LOG` | Log level: `debug`, `info` (default), `warn`, `error`. Only `penguintier-dnsd` reads it so far, and the tray logs at `info`. |
 
 These and the files below are documented for users in
-`packaging/man/penguintier.1`; keep the man page in step when they change.
+`packaging/man/penguintier.1`. Keep the man page in step when they change.
 
 ### ZeroTier API token
 
@@ -110,27 +110,27 @@ Lookup order:
 Rules:
 
 - The first file that exists wins. If that file is unsafe or malformed,
-  that is the error; the next file is not tried, so the problem gets
+  that is the error. The next file is not tried, so the problem gets
   fixed instead of hidden. (The system token is only "found" when it is
   readable.)
 - Refuse a token file the user doesn't own, or one that is group- or
-  world-readable, and offer to fix it (`doctor` prints `chmod 600 <file>`;
-  "Authorize Penguintier…" writes a fresh private copy).
+  world-readable, and offer to fix it (`doctor` prints `chmod 600 <file>`,
+  and "Authorize Penguintier…" writes a fresh private copy).
 - "Authorize Penguintier…" runs `pkexec penguintier-token-helper` (polkit
   action `io.github.rasikhq.Penguintier.read-token`, `auth_admin` for
-  active sessions and `no` otherwise; the `exec.path` annotation names
+  active sessions and `no` otherwise, with an `exec.path` annotation naming
   `/usr/libexec/penguintier/penguintier-token-helper`). The helper prints
   the token on stdout. The tray writes it to `~/.zeroTierOneAuthToken` with
   mode 0600, atomically (temp file, then rename), then connects again.
 - Token helper exit codes: 0 printed the token, 1 cannot read the token
   file, 2 arguments given (it takes none), 3 the file holds no valid token.
-- pkexec exit codes: 126 = the user dismissed the prompt (the tray stays
-  quiet); 127 = wrong password, not allowed, or no polkit agent (the tray
-  shows a notification pointing to `penguintier doctor`, which prints the
-  manual command:
-  `sudo cat /var/lib/zerotier-one/authtoken.secret | install -m600 /dev/stdin ~/.zeroTierOneAuthToken`).
-- Only the first interactive run asks by itself (see state.json below);
-  otherwise the menu shows "Authorize Penguintier…". A run with
+- pkexec exit codes: 126 means the user dismissed the prompt, and the tray
+  stays quiet. 127 means a wrong password, not allowed, or no polkit agent.
+  The tray then shows a notification pointing to `penguintier doctor`,
+  which prints the manual command:
+  `sudo cat /var/lib/zerotier-one/authtoken.secret | install -m600 /dev/stdin ~/.zeroTierOneAuthToken`.
+- Only the first interactive run asks by itself (see state.json below).
+  Otherwise the menu shows "Authorize Penguintier…". A run with
   `--autostart` never asks.
 - `penguintier deauthorize [--yes]` deletes that copy, after asking unless
   `--yes` is given. A tray that is running keeps its access until it
@@ -158,9 +158,9 @@ Rules:
     by itself.
 - Autostart: `$XDG_CONFIG_HOME/autostart/io.github.rasikhq.Penguintier.desktop`
   with `Exec=penguintier --autostart` and `TryExec=penguintier` (the file
-  stays in the home folder after an uninstall; TryExec makes the desktop
+  stays in the home folder after an uninstall, and TryExec makes the desktop
   skip it then). With `--autostart` the tray never
-  shows first-run prompts. "Start at Login" writes or removes it; it counts
+  shows first-run prompts. "Start at Login" writes or removes it. It counts
   as off when the file has `Hidden=true` or
   `X-GNOME-Autostart-enabled=false`. It is turned on after the first run
   that reaches ZeroTier with a working token, unless `startAtLoginDecided`
@@ -169,47 +169,47 @@ Rules:
 
 ### Desktop integration
 
-- **Command line:** started from a terminal (stdin and stderr are a
+- Started from a terminal (stdin and stderr are a
   terminal), `penguintier` starts `penguintier --foreground` in the
   background (new session, output to the journal through `systemd-cat
   --identifier=penguintier`) and returns, so the terminal is free and
   Ctrl+C doesn't quit the tray. `--foreground` keeps it in the terminal
-  with the log on stderr; `--autostart` and development builds
+  with the log on stderr. `--autostart` and development builds
   (`version == "dev"`) always stay in the foreground. Log:
   `journalctl --user -t penguintier`.
-- **Single instance:** the tray owns the session bus name
+- To stay a single instance, the tray owns the session bus name
   `io.github.rasikhq.Penguintier` (`DoNotQueue`) and exports
   `org.freedesktop.Application` at `/io/github/rasikhq/Penguintier`. A
-  second launch calls its `Activate` (none with `--autostart`) and exits 0;
-  the running tray then shows "Penguintier is already running". The tray
+  second launch calls its `Activate` (none with `--autostart`) and exits 0,
+  and the running tray then shows "Penguintier is already running". The tray
   quits when its session bus connection is lost (the user logged out), so
   no tray without an icon is left running into the next login.
-- **Notifications** go out on connections that stay open while the tray
-  runs: GNOME Shell removes an app's notifications as soon as the
+- Notifications go out on connections that stay open while the tray
+  runs, because GNOME Shell removes an app's notifications as soon as the
   connection that sent them closes. Each one has a `default` action (the
-  click), even when it does nothing: without one, a click makes GNOME
+  click), even when it does nothing. Without one, a click makes GNOME
   launch the .desktop entry, which would start a second Penguintier.
-- **Missing tray host:** when nothing has owned
+- When no tray host has owned
   `org.kde.StatusNotifierWatcher` with `IsStatusNotifierHostRegistered`
   true for 10 seconds, the tray shows one notification with fix steps for
   the desktop (`$XDG_CURRENT_DESKTOP`) and, on GNOME, the distribution
   (`/etc/os-release`) and the AppIndicator extension's state, as GNOME
   Shell reports it (`org.gnome.Shell.Extensions.GetExtensionInfo` on the
-  bus name `org.gnome.Shell`). At most once per login:
+  bus name `org.gnome.Shell`). It shows at most once per login.
   `$XDG_RUNTIME_DIR/penguintier/no-tray-host-notice` holds the key of the
   login it was shown in, logind's graphical session ID
   (`login1:<id>`, from `User.Display` of
   `/org/freedesktop/login1/user/self`), or else the session bus's ID
-  (`bus:<id>`). The folder alone is not enough: it outlives a logout while
-  any of the user's processes run. The extension's UUID is
+  (`bus:<id>`). The folder alone is not enough, because it outlives a
+  logout while any of the user's processes run. The extension's UUID is
   `ubuntu-appindicators@ubuntu.com` on Debian and Ubuntu,
   `appindicatorsupport@rgcjonas.gmail.com` elsewhere.
-- **DNS row:** each network's submenu has a read-only "DNS: …" row
-  (`internal/dnsstatus`). States, also used by `doctor --json`:
+- Each network's submenu has a read-only "DNS: …" row
+  (`internal/dnsstatus`). Its states, also used by `doctor --json`, are
   `applied`, `waiting-for-resolved`, `daemon-not-running`, `link-managed`,
   `set-by-other`, `pending`, `unknown`, `not-requested`, `not-connected`,
   `no-dns`. The probe only touches D-Bus when some network qualifies.
-- **"Enable DNS support…"** shows while a network is
+- "Enable DNS support…" shows while a network is
   `waiting-for-resolved`. See the next section.
 
 ### Enable DNS support (switching the computer to systemd-resolved)
@@ -221,23 +221,25 @@ so a mistake cuts off the internet. It is done by
 `auth_admin`), which backs up first, checks after, and undoes everything
 itself when a check fails.
 
-Why: on Debian 13 the package's install script starts resolved before
+This is needed because on Debian 13 the package's install script starts resolved before
 D-Bus knows its user (`Unknown username "systemd-resolve"`), so resolved
 runs without its bus name, NetworkManager can't hand it DNS servers, and
-`/etc/resolv.conf` already points at it: no name resolves. Removing the
+`/etc/resolv.conf` already points at it, so no name resolves. Removing the
 package then rebuilds `/etc/resolv.conf` from resolved's empty server list,
 so that is no undo either. (Seen on a real machine on 2026-10-19 and
-reproduced in a container; see docs/testing.md.)
+reproduced in a container, as docs/testing.md describes.)
 
-**Supported setup.** Everything below must hold. Otherwise nothing is
-changed and the tray explains which point failed and how to switch by hand:
+#### Supported setup
+
+Everything below must hold. Otherwise nothing is changed, and the tray
+explains which point failed and how to switch by hand.
 
 1. A Debian-family system (`ID` or `ID_LIKE` debian/ubuntu in
    `/etc/os-release`) with `apt-get` and `dpkg`, and systemd as PID 1.
 2. `systemd-resolved` is not installed (`not-installed` or `config-files`
-   in dpkg) and not running; `resolvconf` and `openresolv` are not
+   in dpkg) and not running, and neither `resolvconf` nor `openresolv` is
    installed.
-3. NetworkManager runs and writes `/etc/resolv.conf` itself: its
+3. NetworkManager runs and writes `/etc/resolv.conf` itself. Its
    DnsManager `Mode` is `default` and `RcManager` is `symlink`, and
    `/etc/resolv.conf` is a regular file starting with
    `# Generated by NetworkManager`. systemd-networkd is not running.
@@ -245,14 +247,18 @@ changed and the tray explains which point failed and how to switch by hand:
    `debian.org`), so the same lookup can prove DNS still works afterwards.
 5. No earlier switch is unfinished (see the backup below).
 
-**Backup.** Before anything changes, the files the switch can touch are
-copied to `/var/lib/penguintier/dns-backup/` (folder 0755; each copy keeps
-its mode and owner), with `manifest.json` describing them and the state:
-`/etc/resolv.conf`, `/etc/nsswitch.conf` and, if it exists,
-`/etc/systemd/resolved.conf`. These are not secrets; the folder is readable
-so `doctor` can report it. Only one backup exists at a time.
+#### Backup
 
-**Switch.** `apt-get install --no-install-recommends systemd-resolved`
+Before anything changes, the files the switch can touch are copied to
+`/var/lib/penguintier/dns-backup/` (folder 0755, and each copy keeps its
+mode and owner), with `manifest.json` describing them and the state. The
+files are `/etc/resolv.conf`, `/etc/nsswitch.conf` and, if it exists,
+`/etc/systemd/resolved.conf`. These are not secrets, so the folder is
+readable and `doctor` can report it. Only one backup exists at a time.
+
+#### Switch
+
+The switch runs `apt-get install --no-install-recommends systemd-resolved`
 (only that package, so `/etc/nsswitch.conf` is not edited), then:
 
 1. Wait up to 10 s for `org.freedesktop.resolve1` on the bus. If resolved
@@ -260,24 +266,30 @@ so `doctor` can report it. Only one backup exists at a time.
 2. Wait up to 20 s until the lookup from the check works. If it doesn't,
    ask NetworkManager to send its DNS again (`nmcli general reload
    dns-full`) and wait 10 s more.
-3. Success: the manifest says `enabled`, and the backup stays for a later
-   undo.
+3. On success the manifest says `enabled`, and the backup stays for a
+   later undo.
 
-**Automatic undo** (any failure after the backup, or SIGTERM/SIGINT):
-wait until no package manager holds dpkg's lock, purge the packages this
-switch installed, put every backed-up file back
-byte for byte (and remove `/etc/systemd/resolved.conf` if it didn't exist
-before), `nmcli general reload dns-rc`, and check the lookup works again.
-The manifest then says `rolled-back`. If even that fails, the helper says
-so and prints the manual steps; the backup stays.
+#### Automatic undo
 
-**Undo later.** `pkexec /usr/libexec/penguintier/penguintier-dns-helper undo`
+Any failure after the backup, or SIGTERM/SIGINT, starts the undo. It waits
+until no package manager holds dpkg's lock, purges the packages this
+switch installed, puts every backed-up file back
+byte for byte (and removes `/etc/systemd/resolved.conf` if it didn't exist
+before), runs `nmcli general reload dns-rc`, and checks the lookup works
+again. The manifest then says `rolled-back`. If even that fails, the helper
+says so and prints the manual steps, and the backup stays.
+
+#### Undo later
+
+`pkexec /usr/libexec/penguintier/penguintier-dns-helper undo`
 runs the same undo for an `enabled` or an unfinished (`in-progress`)
 switch. `doctor` shows the backup's state and this command.
 
-**Helper contract.** `penguintier-dns-helper enable|undo|check` (nothing
-else; no paths from the caller). Progress lines on stderr; the last line
-on stdout is JSON: `{"result": "enabled" | "rolled-back" | "refused" |
+#### Helper contract
+
+`penguintier-dns-helper enable|undo|check` takes nothing else, and no paths
+from the caller. Progress lines go to stderr, and the last line on stdout
+is JSON: `{"result": "enabled" | "rolled-back" | "refused" |
 "undone" | "failed", "message": "…", "backup": "…"}`. Exit codes: 0
 enabled / undone / check passed, 1 failed but restored (rolled back),
 2 wrong usage, 3 refused (unsupported setup, nothing changed), 4 failed and
@@ -294,8 +306,8 @@ not fully restored (manual steps printed).
   `zerotier.auth`, `desktop.tray`, `desktop.notifications`,
   `desktop.clipboard`, `polkit`, `dns.resolved`, `dns.daemon`,
   `dns.networks`, `dns.setup` (the state of "Enable DNS support…"'s
-  switch, with the undo command). Fields and IDs are only ever added; a removal or a
-  change of meaning bumps `schemaVersion`.
+  switch, with the undo command). Fields and IDs are only ever added, and a
+  removal or a change of meaning bumps `schemaVersion`.
 
 ### Icons
 
@@ -305,7 +317,7 @@ not fully restored (manual steps printed).
 | `penguintier-online` | tray state: online | `assets/tray/penguintier-online.{svg,png}` |
 | `penguintier-offline` | tray state: offline | `assets/tray/penguintier-offline.{svg,png}` |
 | `penguintier-attention` | tray state: needs attention | `assets/tray/penguintier-attention.{svg,png}` |
-| `penguintier-{online,offline,attention}-symbolic` | one-color tray states that GTK recolors to match the panel | `assets/tray/penguintier-*-symbolic.svg` (not used yet: the tray sends PNG pixels; kept for an icon-name tray or a GNOME extension) |
+| `penguintier-{online,offline,attention}-symbolic` | one-color tray states that GTK recolors to match the panel | `assets/tray/penguintier-*-symbolic.svg` (not used yet, because the tray sends PNG pixels, but kept for an icon-name tray or a GNOME extension) |
 
 ### Tray rules
 
@@ -316,11 +328,11 @@ not fully restored (manual steps printed).
   `ResetMenu` and rebuild only when the structure changes (networks added
   or removed).
 - Sort networks by ID.
-- Menu depth ≤ 2: addresses and routes are flattened into the network's
+- Menu depth ≤ 2, so addresses and routes are flattened into the network's
   submenu as sections.
 - Labels go over dbusmenu, where `_` marks a keyboard shortcut. Spec hosts
-  (KDE, GTK) need every `_` doubled; GNOME Shell's AppIndicator extension
-  only strips the first one. The tray escapes for the host that owns
+  (KDE, GTK) need every `_` doubled, but GNOME Shell's AppIndicator
+  extension only strips the first one. The tray escapes for the host that owns
   `org.kde.StatusNotifierWatcher` (see "Underscores in menu labels" in
   testing.md).
 
@@ -349,8 +361,8 @@ The tray starts it on demand. It exits when its window closes.
 - Reconciles every 5 s with a pure `Plan()` function, and reverts
   everything on SIGTERM.
 - Leaves alone any link whose DNS it did not set.
-- Idles while systemd-resolved is absent; wakes when `org.freedesktop.resolve1`
-  appears on the bus.
+- Idles while systemd-resolved is absent, and wakes when
+  `org.freedesktop.resolve1` appears on the bus.
 - Started by `penguintier-dnsd.path` once
   `/var/lib/zerotier-one/authtoken.secret` exists.
 - Exits on HTTP 401 so `Restart=on-failure` reloads the token credential.
@@ -358,24 +370,24 @@ The tray starts it on demand. It exits when its window closes.
   (`LoadCredential=zt-authtoken:/var/lib/zerotier-one/authtoken.secret`).
 - Remembers the links it changed in `/run/penguintier-dnsd/applied.json`
   (its `RuntimeDirectory=`, mode 0700, kept across restarts until reboot).
-  Only the daemon can read it; other programs (the tray's DNS row,
+  Only the daemon can read it. Other programs (the tray's DNS row,
   `doctor`) read the link state from resolve1 and the unit state from
   systemd instead.
 - To stop it, stop both units (`penguintier-dnsd.path` and
-  `penguintier-dnsd.service`); the path unit restarts a service stopped on
-  its own.
+  `penguintier-dnsd.service`), because the path unit restarts a service
+  stopped on its own.
 
 ### Version
 
 Each binary that reports a version has `var version = "dev"` in its
 `main` package. Builds set it with
-`-ldflags "-X main.version=<version>"` (`make build` uses `git describe`;
-GoReleaser uses the tag).
+`-ldflags "-X main.version=<version>"` (`make build` uses `git describe`,
+and GoReleaser uses the tag).
 
-The git tag is the only place the version number comes from: tag
+The git tag is the only place the version number comes from. Tag
 `v0.1.0` gives packages `penguintier_0.1.0_amd64.deb` and
 `penguintier-0.1.0-1.x86_64.rpm`, and `penguintier --version` prints
-`penguintier 0.1.0`. Nothing in the code needs bumping for a release; the
+`penguintier 0.1.0`. Nothing in the code needs bumping for a release. The
 release checklist in testing.md ("P7") lists the files that describe a
 release (CHANGELOG.md, the metainfo `<releases>`).
 
@@ -401,7 +413,7 @@ Checked on 2026-10-19 (Debian 13, GNOME 48 Wayland, Go 1.27.2,
 - `CGO_ENABLED=0 go build ./...` succeeds. CI repeats this on every PR.
 - A test program calling `systray.Run` (icon, title, tooltip, one menu
   item), built with `CGO_ENABLED=0`:
-  - `file` reports "statically linked"; `ldd` reports "not a dynamic
+  - `file` reports "statically linked", and `ldd` reports "not a dynamic
     executable". There is no glibc version floor.
   - When run, it exported `org.kde.StatusNotifierItem-<pid>-1` on the session
     bus and exited cleanly on `systray.Quit()`.
@@ -417,14 +429,14 @@ Checked on 2026-10-19 (Debian 13, GNOME 48 Wayland, Go 1.27.2,
 `replace fyne.io/systray => ./third_party/fyne-systray` in `go.mod`. The
 patch fixes a crash when a menu click arrives while the menu is rebuilt.
 `third_party/fyne-systray/PENGUINTIER.md` lists every difference from
-upstream; `third_party/README.md` has the rules for that folder. The copy
-is its own Go module, so `go test ./...` from the root skips it; `make
-test` and CI test it separately.
+upstream, and `third_party/README.md` has the rules for that folder. The
+copy is its own Go module, so `go test ./...` from the root skips it.
+`make test` and CI test it separately.
 
 ## Stubs
 
 P0 started every command as a stub that printed
-`<name>: not implemented yet`. All of them are implemented now;
+`<name>: not implemented yet`. All of them are implemented now, and
 `penguintier --version` prints `penguintier <version>`.
 
 ## File ownership
@@ -442,7 +454,7 @@ file, it calls this out in its PR description.
 | `cmd/penguintier/`, `cmd/penguintier-dns-helper/`, `internal/doctor/`, `internal/dnsstatus/`, `internal/dnssetup/`, `internal/platform/{autostart,instance,watcher}/`, `scripts/dns-lab/` (may also touch P3's files) | P5: desktop integration |
 | `.goreleaser.yaml`, `cmd/licensegen/`, `packaging/{scripts,metainfo,desktop}/`, `packaging/systemd/*.preset`, `.github/workflows/{package,release}.yml` | P6: packaging |
 | `README.md`, `CHANGELOG.md`, `packaging/man/`, `docs/screenshots/`, `scripts/changelog-section.awk`, `.github/FUNDING.yml`, `funding.json` | P7: release |
-| `CLAUDE.md`, `docs/architecture.md`, `.golangci.yml`, `.gitignore`, `.github/workflows/ci.yml`, `.vscode/` | P0; later changes are small and called out in the PR |
+| `CLAUDE.md`, `docs/architecture.md`, `.golangci.yml`, `.gitignore`, `.github/workflows/ci.yml`, `.vscode/` | P0. Later changes are small and called out in the PR. |
 | `docs/plan.md` | read-only copy of the approved plan |
 
 Shared files, with rules:

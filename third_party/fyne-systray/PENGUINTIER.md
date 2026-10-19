@@ -29,7 +29,7 @@ modified copy, and how this copy does it:
 
 | File | Change |
 |---|---|
-| `example/` | Left out (a sample program and a screenshot; not needed to build). |
+| `example/` | Left out (a sample program and a screenshot, not needed to build). |
 | `systray.go` | `systrayMenuItemSelected` keeps `menuItemsLock` read-locked until the click is delivered. Before, it unlocked first, so `MenuItem.Remove` (called by `ResetMenu`) could close the item's `ClickedCh` in between, and the click then panicked with "send on closed channel", crashing the app. |
 | `penguintier_race_test.go` | New. Clicks an item from several goroutines while removing it. It panics on the upstream code and passes with the fix. |
 | `PENGUINTIER.md` | New: this file. |
@@ -55,5 +55,5 @@ cd third_party/fyne-systray && go test -race ./...
 1. Copy the new version here the same way, without `example/`.
 2. If upstream has not fixed the race, apply the `systray.go` change again,
    with its notice.
-3. Run the copy's tests; `penguintier_race_test.go` must pass.
+3. Run the copy's tests. `penguintier_race_test.go` must pass.
 4. Update the version in the root `go.mod` `require` line and in this file.

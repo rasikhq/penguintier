@@ -31,7 +31,7 @@ It also has a typo'd identifier (`come.rasikh.penguintier`), and `LICENSE` was d
 - **Packaging:** .deb + .rpm on GitHub Releases. AUR, AppImage, Flatpak and OBS repos come later.
 - **License:** restore MIT with `git checkout 7109743 -- LICENSE`.
 - **Stack: Go + React.** Tray, DNS daemon and helpers are written in Go. The Join/About windows are React + TypeScript via Wails v2, launched on demand as a separate process that exits on close. They may grow into a full GUI later.
-- **Icons/brand:** designed by Claude. One is picked from an HTML preview page. The icon is original, not the ZeroTier logo. The README and About say "Unofficial; not affiliated with ZeroTier, Inc."
+- **Icons/brand:** designed by Claude. One is picked from an HTML preview page. The icon is original, not the ZeroTier logo. The README and About say "Unofficial app. Not affiliated with ZeroTier, Inc."
 - **DNS:** done through systemd-resolved. Where resolved is missing (Debian), the tray offers "Enable DNS support…", which installs systemd-resolved through PackageKit behind a single polkit prompt.
 - **Execution:** each phase runs in its own session and worktree and ends in one PR to `master`. Phases run in parallel where they own disjoint files.
 

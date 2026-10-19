@@ -1,8 +1,9 @@
 # Penguintier
 
-Unofficial Linux tray app for ZeroTier (MIT). It matches the official
+A Linux tray app for ZeroTier (MIT). It matches the official
 macOS/Windows tray menu and makes ZeroTier's "Allow DNS Configuration" work
-on Linux through systemd-resolved. Not affiliated with ZeroTier, Inc.
+on Linux through systemd-resolved. Unofficial app. Not affiliated with
+ZeroTier, Inc.
 
 - Plan (source of truth): `docs/plan.md`
 - Contracts and file ownership: `docs/architecture.md`
@@ -26,7 +27,7 @@ make ui-dev     # UI_SCREEN=join|about
 make run        # tray from source
 ```
 
-Go is pinned with a `toolchain` line in `go.mod` and `ui/go.mod`; Go
+Go is pinned with a `toolchain` line in `go.mod` and `ui/go.mod`, and Go
 downloads it automatically. If `go env GOTOOLCHAIN` prints `local`, run
 `go env -w GOTOOLCHAIN=auto` once.
 

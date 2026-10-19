@@ -1,8 +1,8 @@
 # Assets
 
 Penguintier's icons. Original artwork, MIT license like the rest of the
-repo. Penguintier is unofficial and not affiliated with ZeroTier, Inc.; the
-icon is deliberately not the ZeroTier logo.
+repo. Penguintier is an unofficial app and is not affiliated with ZeroTier,
+Inc., so the icon is deliberately not the ZeroTier logo.
 
 | Path | What it is |
 |---|---|
