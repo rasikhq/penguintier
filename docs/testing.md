@@ -986,21 +986,26 @@ afterwards.
 
 ### Test matrix
 
-What each setup checks, on top of the common checklist below. CI's
-install smoke test (P6) already covers installing, upgrading and removing
-the packages in `debian:12`, `debian:13`, `ubuntu:24.04` and
-`fedora:latest` containers on every PR, so the VMs focus on the desktop.
+Most distributions are built on Debian, Ubuntu or Fedora, and a desktop's
+tray works the same on every distribution. So the matrix pairs each of the
+three base distributions with a different desktop: three machines cover
+three distribution families and three desktops. CI's install smoke test (P6) already covers
+installing, upgrading and removing the packages in `debian:12`,
+`debian:13`, `ubuntu:24.04` and `fedora:latest` containers on every PR, so
+the machines focus on the desktop.
 
-| Setup | Why it is in the matrix |
+| Setup | What it covers |
 |---|---|
-| Ubuntu 24.04 GNOME | The main target. The AppIndicator extension is preinstalled and systemd-resolved runs, so DNS can be tested end to end with the self-test network. |
-| Fedora GNOME (current) | No tray until the extension is installed, so the notice should show the `dnf` command and the upstream UUID. Also SELinux in enforcing mode, and the rpm. |
-| Fedora KDE (current) | Tooltips, spec-style underscore escaping, and KDE's own notifications and polkit agent. |
-| Debian 13 GNOME (the dev machine) | "Enable DNS support…" on a real machine. |
-| Debian 12 Xfce | X11 (xclip), the oldest supported distro, no systemd-resolved: "Enable DNS support…" on Debian 12. |
-| Linux Mint 22 Cinnamon | The XApp status applet as tray host. |
-| Fedora Sway (current) | waybar's tray. There may be no polkit agent, in which case the first-run prompt fails and `doctor` prints the manual command. |
-| Pop!_OS 24.04 COSMIC | COSMIC's status area applet. |
+| Debian 13 GNOME (the dev machine) | Debian, GNOME with the AppIndicator extension, Wayland, and "Enable DNS support…" on a real machine. |
+| Fedora 44 KDE (VM) | Fedora: the rpm, SELinux in enforcing mode, systemd-resolved by default. KDE Plasma: tooltips, spec-style underscore escaping, KDE's own notifications and polkit agent, Wayland. |
+| Linux Mint 22 Cinnamon (VM) | Ubuntu 24.04, which Mint 22 is built on: the .deb with Ubuntu's libraries, systemd-resolved by default. Cinnamon: the XApp status applet as tray host, X11, copying with xclip. Mint 22 is also the oldest Mint release Penguintier supports. |
+
+Not covered by a machine for 0.1.0: Xfce, MATE, Budgie, LXQt, COSMIC and
+sway with waybar. Their panels use the same StatusNotifierItem standard,
+so they are expected to work, and test reports are welcome. sway is the
+usual setup without a polkit agent, so the first-run prompt fails there
+and `penguintier doctor` prints the manual command (covered by unit
+tests).
 
 #### Setting up the VMs (quickemu)
 
@@ -1025,21 +1030,18 @@ to about 20–30 GB. Make a folder for them and fetch each image (`quickget
 
 ```
 mkdir -p ~/vms && cd ~/vms
-quickget ubuntu 24.04
-quickget fedora <release> Workstation
-quickget fedora <release> KDE
-quickget fedora <release> Sway
-quickget debian 12 xfce
-quickget linuxmint 22.2 cinnamon
-quickget popos 24.04 intel
+quickget fedora 44 KDE
+quickget linuxmint 22 cinnamon
 ```
 
-quickemu 4.9.7 is older than some of these releases. It doesn't know
-Pop!_OS 24.04 at all. For Ubuntu 24.04 it asks for 24.04.3, which Ubuntu no
-longer serves: the "ISO" it saves is a 285-byte error page and the checksum
-check fails. In those cases, download the current ISO yourself, check it
-against the distribution's `SHA256SUMS`, and write the config by hand. For
-example, `ubuntu-24.04.conf`:
+quickemu 4.9.7 is older than some of these releases. Fedora 44 renamed its
+KDE image (`Fedora-KDE-Desktop-Live-44-1.7.x86_64.iso`), and quickget finds
+no URL for it. For Ubuntu 24.04 it asks for 24.04.3, which Ubuntu no longer
+serves: the "ISO" it saves is a 285-byte error page and the checksum check
+fails. It doesn't know Pop!_OS 24.04 at all. In those cases, download the
+current ISO yourself (dl.fedoraproject.org for Fedora), check it against the
+distribution's checksum file, and write the config by hand. For example,
+`ubuntu-24.04.conf`:
 
 ```
 #!/usr/bin/quickemu --vm
@@ -1141,10 +1143,5 @@ Release candidate 0.1.0. "CI" = the container smoke test in
 | Containers: install, upgrade, remove, purge (`smoke-test.sh`) | 2026-10-19 | RC snapshot of the P7 PR | pass | Run locally on debian:12, ubuntu:24.04 and fedora:latest (Fedora 44). CI runs all four images on every PR. The man page installs, and lintian no longer reports `no-manual-page`. |
 | Release build from a tag (throwaway clone tagged v0.1.0) | 2026-10-19 | 0.1.0 | pass | `penguintier_0.1.0_amd64.deb`, `penguintier-0.1.0-1.x86_64.rpm`, `SHA256SUMS` checks out, and `--version` prints `penguintier 0.1.0`. |
 | Debian 13 GNOME 48 Wayland (dev machine) | 2026-10-19 | snapshot 9bf93c4 | pass | Every P5 manual step, including "Enable DNS support…" (see P5). Re-check with the RC package before tagging. |
-| Ubuntu 24.04 GNOME | | | not run | |
-| Fedora GNOME | | | not run | |
-| Fedora KDE | | | not run | |
-| Debian 12 Xfce | | | not run | |
+| Fedora 44 KDE | | | not run | |
 | Linux Mint 22 Cinnamon | | | not run | |
-| Fedora Sway | | | not run | |
-| Pop!_OS 24.04 COSMIC | | | not run | |
