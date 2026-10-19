@@ -1,14 +1,29 @@
-// Placeholder from P0. Phase P4 owns this file. See docs/architecture.md.
+// Lets penguintier-dnsd (running as the "penguintier-dns" system user)
+// change per-link DNS settings in systemd-resolved, and nothing else.
+// Installed to /usr/share/polkit-1/rules.d/.
 //
-// P4 will allow the "penguintier-dns" system user to use only these
-// systemd-resolved actions:
-//   org.freedesktop.resolve1.set-dns-servers
-//   org.freedesktop.resolve1.set-domains
-//   org.freedesktop.resolve1.set-default-route
-//   org.freedesktop.resolve1.revert
+// resolved asks polkit before every SetLink* call from a non-root caller.
+// Without this rule those calls would need an admin password, which a
+// system service can't type.
 //
-// Until then this rule grants nothing: returning undefined lets polkit's
-// other rules and defaults decide.
+// Allowed:
+//   org.freedesktop.resolve1.set-dns-servers    SetLinkDNS
+//   org.freedesktop.resolve1.set-domains        SetLinkDomains
+//   org.freedesktop.resolve1.set-default-route  SetLinkDefaultRoute
+//   org.freedesktop.resolve1.revert             RevertLink
+//
+// Everything else (other users, other resolve1 actions such as
+// set-dnssec or set-llmnr, any other action) is not decided here: the
+// function returns nothing, and polkit's other rules and defaults decide.
 polkit.addRule(function (action, subject) {
-  return undefined;
+  if (subject.user !== "penguintier-dns") {
+    return;
+  }
+  switch (action.id) {
+    case "org.freedesktop.resolve1.set-dns-servers":
+    case "org.freedesktop.resolve1.set-domains":
+    case "org.freedesktop.resolve1.set-default-route":
+    case "org.freedesktop.resolve1.revert":
+      return polkit.Result.YES;
+  }
 });

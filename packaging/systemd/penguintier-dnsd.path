@@ -1,7 +1,7 @@
-# Placeholder from P0. Phase P4 owns this file. See docs/architecture.md.
-#
 # Starts penguintier-dnsd.service once ZeroTier has written its API token,
-# so the daemon never starts before zerotier-one has run at least once.
+# so the daemon never starts before zerotier-one has run at least once
+# (LoadCredential= would fail without the file). Installed to
+# /usr/lib/systemd/system/ and enabled by 80-penguintier.preset.
 
 [Unit]
 Description=Start Penguintier DNS once the ZeroTier auth token exists

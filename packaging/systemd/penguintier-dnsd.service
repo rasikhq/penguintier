@@ -1,21 +1,87 @@
-# Placeholder from P0. Phase P4 owns this file and adds the hardening
-# (ProtectSystem=strict, empty CapabilityBoundingSet, IPAddressAllow=localhost,
-# SystemCallFilter=@system-service, ...). See docs/architecture.md.
+# Penguintier DNS daemon: applies each ZeroTier network's DNS servers and
+# domain to systemd-resolved, for networks with "Allow DNS Configuration" on.
+#
+# Started by penguintier-dnsd.path once ZeroTier has written its API token;
+# it is not enabled on its own (see 80-penguintier.preset). Installed to
+# /usr/lib/systemd/system/.
+#
+# Check the sandbox with: systemd-analyze security penguintier-dnsd.service
 
 [Unit]
 Description=Penguintier DNS for ZeroTier networks (via systemd-resolved)
 Documentation=https://github.com/rasikhq/penguintier
-After=zerotier-one.service
+# Only ordering, no Wants=/Requires=: the daemon idles while
+# systemd-resolved is missing and wakes up when it appears on the bus. The
+# order also makes us stop first at shutdown, so our settings are reverted
+# while resolved is still running.
+After=zerotier-one.service systemd-resolved.service dbus.service
 
 [Service]
 Type=exec
 ExecStart=/usr/libexec/penguintier/penguintier-dnsd
 User=penguintier-dns
-# The daemon gets the ZeroTier API token as a systemd credential, so it never
-# needs read access to /var/lib/zerotier-one itself.
-LoadCredential=zerotier-authtoken:/var/lib/zerotier-one/authtoken.secret
+Group=penguintier-dns
+
+# systemd reads the token as root and hands us a private copy in
+# $CREDENTIALS_DIRECTORY/zt-authtoken, so this user needs no access to
+# /var/lib/zerotier-one (and never sees identity.secret).
+LoadCredential=zt-authtoken:/var/lib/zerotier-one/authtoken.secret
+
+# Exit code 1 (for example after HTTP 401, when ZeroTier made a new token)
+# restarts us, which loads the credential again.
 Restart=on-failure
 RestartSec=5s
+# The daemon reverts its settings on SIGTERM; give it time, but not forever.
+TimeoutStopSec=15s
+
+# /run/penguintier-dnsd holds applied.json: which links we changed. "yes"
+# keeps it across restarts and stop/start (until reboot, when resolved's
+# settings are gone too), so a new process still recognizes its links.
+RuntimeDirectory=penguintier-dnsd
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+UMask=0077
+
+# --- Sandbox ---------------------------------------------------------------
+# The daemon only needs: the system D-Bus socket, the ZeroTier API on
+# localhost, /sys/class/net (read-only) and its runtime directory.
+# No PrivateNetwork=: it needs the host's interfaces and 127.0.0.1:9993.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+DevicePolicy=closed
+PrivateIPC=yes
+# No PrivateUsers=: systemd can't set up a user namespace inside containers
+# such as LXC or rootless podman (status=217/USER), and people run ZeroTier
+# there. The daemon has no capabilities anyway.
+ProtectHostname=yes
+ProtectClock=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressAllow=localhost
+IPAddressDeny=any
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+KeyringMode=private
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
 
 [Install]
+# Only for admins who enable the service directly; the package enables the
+# .path unit instead.
 WantedBy=multi-user.target
