@@ -174,6 +174,8 @@ func (c *controller) run(ctx context.Context) {
 	// returns.
 	defer c.stopClickWatchers()
 
+	// Run calls refresh once before this loop starts too; polling again
+	// right away costs nothing, since an unchanged menu makes no calls.
 	c.refresh(ctx)
 	for {
 		// select waits until one of its cases can go ahead, then runs

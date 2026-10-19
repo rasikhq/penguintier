@@ -60,9 +60,18 @@ func Run(ctx context.Context, cfg Config) error {
 	systray.SetIcon(c.icons[IconOffline])
 
 	onReady := func() {
-		// The library answers the tray host's first menu request only
-		// after onReady returns, so the controller runs in its own
-		// goroutine and onReady returns at once.
+		// Build the first menu before returning. The library holds back
+		// the tray host's first menu request until onReady returns, and
+		// GNOME's AppIndicator extension reads the menu only once when the
+		// icon appears (later only when the menu opens, and it never opens
+		// an empty menu). A host that got an empty menu here would show
+		// none at all.
+		//
+		// The controller loop then runs in its own goroutine, so onReady
+		// returns. Starting a goroutine with "go" happens after everything
+		// before it, so the loop sees what this first refresh did; from
+		// then on only the loop touches the controller.
+		c.refresh(ctx)
 		go func() {
 			defer close(controllerDone)
 			c.run(ctx)
