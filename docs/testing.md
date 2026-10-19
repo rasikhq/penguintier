@@ -792,6 +792,19 @@ afterwards. NetworkManager (1.52, `dns=default`, `rc-manager=symlink`)
 hands its DNS to resolved by itself once resolved has its bus name; no
 reload was needed in the lab.
 
+On a real machine (Debian 13, GNOME 48 Wayland, NetworkManager 1.52 on
+Wi-Fi), on 2026-10-19, after the rebuild: "Enable DNS support…" →
+Switch → one password prompt → "DNS support is on". resolved had its bus
+name at once (its system user was left from an earlier install, so no
+race), NetworkManager handed it the Wi-Fi's DNS servers by itself, the
+self-test network's row said "DNS: applied", `host.pt.test` resolved
+through the ZeroTier link and other names through the Wi-Fi's DNS,
+`/etc/nsswitch.conf` was unchanged, and the backup of `/etc/resolv.conf`
+matched a copy taken beforehand. `penguintier doctor` reported no
+problems. (The first attempt, with the PackageKit version, is what cut
+this machine's DNS and led to the rebuild; see "Enable DNS support" in
+architecture.md.)
+
 ## P6: Packaging
 
 ### Build the packages
