@@ -3,8 +3,9 @@
  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <!--
-  Polkit action for "Authorize Penguintier…" (phase P1; see
-  docs/architecture.md, "ZeroTier API token").
+  Polkit actions for "Authorize Penguintier…" (phase P1; see
+  docs/architecture.md, "ZeroTier API token") and "Enable DNS support…"
+  (phase P5; see "Enable DNS support" there).
 
   The tray runs `pkexec /usr/libexec/penguintier/penguintier-token-helper`.
   pkexec looks for an action whose exec.path annotation matches that exact
@@ -19,6 +20,11 @@
     control of ZeroTier, and the prompt is rare anyway.
   - allow_inactive and allow_any=no: never from an inactive session, SSH or
     a background service.
+
+  The second action, enable-dns, runs penguintier-dns-helper the same way:
+  it switches the computer's DNS to systemd-resolved after backing up the
+  affected files, and undoes the switch by itself if names stop resolving.
+  Same defaults: an admin password every time, active sessions only.
 
   Install for local testing with `make dev-install-helper`.
 -->
@@ -36,5 +42,16 @@
       <allow_active>auth_admin</allow_active>
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/penguintier/penguintier-token-helper</annotate>
+  </action>
+
+  <action id="io.github.rasikhq.Penguintier.enable-dns">
+    <description>Switch this computer's DNS to systemd-resolved</description>
+    <message>Penguintier needs to install systemd-resolved and switch this computer's DNS to it, so ZeroTier networks can set DNS for their own domains. It backs up the files it changes first and puts them back by itself if names stop resolving.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/penguintier/penguintier-dns-helper</annotate>
   </action>
 </policyconfig>

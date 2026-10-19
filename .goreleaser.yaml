@@ -5,7 +5,7 @@
 #   release.yml (v* tag)       the same build, published as a GitHub Release
 #
 # How the binaries are built:
-#   - The Go programs (tray, DNS daemon, token helper) are static
+#   - The Go programs (tray, DNS daemon, token and DNS helpers) are static
 #     (CGO_ENABLED=0), so GoReleaser builds them itself.
 #   - penguintier-ui needs cgo + WebKitGTK. The "before" hook builds it with
 #     `make ui-build`, and nfpm packs the result like any other file (see
@@ -61,6 +61,16 @@ builds:
   - id: penguintier-token-helper
     main: ./cmd/penguintier-token-helper
     binary: libexec/penguintier/penguintier-token-helper
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  - id: penguintier-dns-helper
+    main: ./cmd/penguintier-dns-helper
+    binary: libexec/penguintier/penguintier-dns-helper
     env: [CGO_ENABLED=0]
     goos: [linux]
     goarch: [amd64]
@@ -169,7 +179,7 @@ nfpms:
         dst: /usr/share/polkit-1/rules.d/50-penguintier-dnsd.rules
         file_info: {mode: 0644}
 
-      # Token helper: polkit action that lets pkexec run it.
+      # Token and DNS helpers: the polkit actions that let pkexec run them.
       - src: packaging/polkit/io.github.rasikhq.Penguintier.policy
         dst: /usr/share/polkit-1/actions/io.github.rasikhq.Penguintier.policy
         file_info: {mode: 0644}

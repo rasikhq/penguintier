@@ -162,9 +162,10 @@ live-test: ## Run the live tests against the real local ZeroTier service
 # pkexec only shows our own prompt when the helper sits at the exact path
 # named in the policy (exec.path), so it has to be installed system-wide.
 # polkit notices new .policy files by itself; no restart is needed.
-dev-install-helper: ## Install the token helper + polkit policy for local testing (asks for sudo)
-	CGO_ENABLED=0 $(GO) build -trimpath -ldflags '$(LDFLAGS)' -o bin/penguintier-token-helper ./cmd/penguintier-token-helper
+dev-install-helper: ## Install the token and DNS helpers + polkit policy for local testing (asks for sudo)
+	CGO_ENABLED=0 $(GO) build -trimpath -ldflags '$(LDFLAGS)' -o bin/ ./cmd/penguintier-token-helper ./cmd/penguintier-dns-helper
 	sudo install -D -m 0755 -o root -g root bin/penguintier-token-helper /usr/libexec/penguintier/penguintier-token-helper
+	sudo install -D -m 0755 -o root -g root bin/penguintier-dns-helper /usr/libexec/penguintier/penguintier-dns-helper
 	sudo install -D -m 0644 -o root -g root packaging/polkit/io.github.rasikhq.Penguintier.policy /usr/share/polkit-1/actions/io.github.rasikhq.Penguintier.policy
 	@echo "Installed. Try: pkexec /usr/libexec/penguintier/penguintier-token-helper"
 
