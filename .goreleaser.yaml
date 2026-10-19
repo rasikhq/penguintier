@@ -12,6 +12,11 @@
 #     "contents" below). Release builds run in a debian:12 container, so the
 #     UI only needs glibc 2.36 or newer.
 #
+# Third-party code: the programs contain other people's Go and JavaScript
+# code, whose licenses want their texts passed on with the programs. The
+# second "before" hook collects them into one file that the packages install
+# (see THIRD_PARTY_LICENSES under "contents").
+#
 # Only amd64 for now: an arm64 package would need penguintier-ui built on
 # an arm64 machine too (cgo can't easily cross-compile WebKitGTK).
 #
@@ -23,6 +28,8 @@ project_name: penguintier
 before:
   hooks:
     - make ui-build VERSION={{ .Version }}
+    # After ui-build: it installs the frontend packages that this one reads.
+    - make third-party-licenses
 
 # The three Go programs, all static (no cgo).
 #   ldflags: -s -w drop debug symbols (smaller binaries); -X sets main.version.
@@ -187,6 +194,12 @@ nfpms:
       - src: LICENSE
         dst: /usr/share/doc/penguintier/copyright
         packager: deb
+        file_info: {mode: 0644}
+      # The licenses of all third-party code inside the programs, written by
+      # the "before" hook (make third-party-licenses). A plain file entry:
+      # nfpm leaves `type: doc` and `type: license` entries out of .deb files.
+      - src: bin/THIRD_PARTY_LICENSES
+        dst: /usr/share/doc/penguintier/THIRD_PARTY_LICENSES
         file_info: {mode: 0644}
       - src: README.md
         dst: /usr/share/doc/penguintier/README.md

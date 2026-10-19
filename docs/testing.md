@@ -16,7 +16,8 @@ don't conflict here.
 | `make mock` | zt-mock, the fake ZeroTier API. |
 | `make live-test` | Tests against the real local ZeroTier service (build tag `live`). |
 | `make vuln` | govulncheck: known vulnerabilities in dependencies and the standard library. |
-| `make licenses` | Every dependency has an allowed license (MIT, BSD, Apache-2.0, ISC, MPL-2.0). |
+| `make licenses` | Every dependency (of the root module and of `ui/`) has an allowed license (MIT, BSD, Apache-2.0, ISC, MPL-2.0). |
+| `make third-party-licenses` | `bin/THIRD_PARTY_LICENSES`: the license texts the packages install (see P6). |
 
 CI (`.github/workflows/ci.yml`) runs the lint, test, build, vuln and
 licenses checks, plus a UI build on Ubuntu 24.04.
@@ -275,6 +276,46 @@ prebuilt binary from <https://goreleaser.com/install/> works too (set
 Local packages carry a UI built against your own glibc. Release packages
 are built in a `debian:12` container, so they run on glibc 2.36 and newer.
 
+### Third-party licenses
+
+The programs contain other people's code, and their licenses (MIT, BSD,
+Apache-2.0) require passing on the license text with the compiled
+programs. `make third-party-licenses` writes it all into
+`bin/THIRD_PARTY_LICENSES`; `make package` runs it before building (the
+second `before` hook in `.goreleaser.yaml`), and the packages install the
+file as `/usr/share/doc/penguintier/THIRD_PARTY_LICENSES`.
+
+```
+make third-party-licenses
+less bin/THIRD_PARTY_LICENSES
+```
+
+What goes in, and where it comes from (`cmd/licensegen` puts it together):
+
+| Part | Which components | How they are found |
+|---|---|---|
+| Go standard library | the Go that builds the programs | `LICENSE` in `$(go env GOROOT)` |
+| Go modules | every package compiled into `penguintier`, `penguintier-dnsd`, `penguintier-token-helper` (root module) and `penguintier-ui` (`ui/` module) | `go-licenses report` lists them and their license files, the same tool as `make licenses`. For `ui/` it uses the build tags of the real build (`UI_GO_TAGS` in the Makefile), so it sees the same packages as `wails build`. |
+| JavaScript | what Vite bundles into the Join/About windows: `dependencies` in `ui/frontend/package.json` and theirs, recursively (React, react-dom, scheduler) | read from `ui/frontend/node_modules` (installed with `bun install --frozen-lockfile`, so it matches `bun.lock`): `package.json` and the `LICENSE`/`COPYING`/`NOTICE` files |
+
+The file is made from the dependencies as they are, so adding a dependency
+needs no extra step. It also refuses to guess: a package whose license
+`go-licenses` cannot identify, or an npm package without a `LICENSE` file
+or `license` field, stops the build with the package's name. Dev tools
+(vite, typescript) are not bundled and are not listed. `vite.config.ts`
+turns off Vite's modulepreload polyfill for the same reason: it is Vite's
+own code and would be inlined into the bundle.
+
+Check a change to this by comparing with what is really in the binaries:
+
+```
+make ui-build build
+go version -m ui/build/bin/penguintier-ui bin/penguintier    # the "dep" lines
+```
+
+Every module listed there has to be in `THIRD_PARTY_LICENSES`.
+`go test ./cmd/licensegen` covers the file format and the error cases.
+
 ### Install smoke test in containers
 
 [packaging/scripts/smoke-test.sh](../packaging/scripts/smoke-test.sh)
@@ -284,6 +325,9 @@ installs the package in a throwaway container and checks:
 - `penguintier --version` runs;
 - the `penguintier-dns` system user exists;
 - the preset enabled `penguintier-dnsd.path` (and not the service);
+- `/usr/share/doc/penguintier/THIRD_PARTY_LICENSES` names the main bundled
+  components (systray, dbus, Wails, Go, React) and holds the Apache, BSD
+  and MIT license texts;
 - `systemd-resolved` was not pulled in (deb; it is only "Suggests");
 - `systemd-analyze verify` accepts both units;
 - the .desktop and metainfo files validate;

@@ -34,6 +34,15 @@ function contentSecurityPolicyPlugin(): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [react(), contentSecurityPolicyPlugin()],
+    build: {
+        // Vite adds a small script that teaches old browsers about
+        // <link rel="modulepreload">. This page has no such links, and
+        // WebKitGTK knows them anyway, so leave it out: then the bundle holds
+        // only our code and the packages listed in package.json (react,
+        // react-dom, scheduler), whose licenses go into the .deb and .rpm
+        // (see cmd/licensegen).
+        modulePreload: {polyfill: false},
+    },
     server: {
         fs: {
             // The About window imports the app icon from the repo's assets/
