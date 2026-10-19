@@ -1,0 +1,244 @@
+icon: attention
+tooltip: Penguintier: online, 12 networks, 5 need attention
+
+My Address: a1b2c3d4e5  → copy "a1b2c3d4e5", notify
+-----
+Join New Network…  → join
+-----
+Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/authorize?nwid=c0ffee123400000a&state=mock"
+-----
+[x] home-lab (c0ffee1234000001) ▸
+    Network ID: c0ffee1234000001  → copy "c0ffee1234000001"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000001 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000001 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000001 allowDefault=true
+    [x] Allow DNS Configuration  → set c0ffee1234000001 allowDNS=false
+    -----
+    Status: OK  (disabled)
+    Ethernet: 02:12:34:00:00:01  (disabled)
+    Device: zt34000001  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: home.arpa  (disabled)
+    -----
+    Addresses  (disabled)
+    10.147.17.5/24  → copy "10.147.17.5"
+    fdc0:ffee:1234:0:199:93a1:b2c3:d4e5/88  → copy "fdc0:ffee:1234:0:199:93a1:b2c3:d4e5"
+    -----
+    Routes  (disabled)
+    10.147.17.0/24  → copy "10.147.17.0/24"
+    192.168.100.0/24 via 10.147.17.1  → copy "192.168.100.0/24"
+    -----
+    Disconnect  → disconnect c0ffee1234000001
+[x] office (c0ffee1234000002) ▸
+    Network ID: c0ffee1234000002  → copy "c0ffee1234000002"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000002 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000002 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000002 allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee1234000002 allowDNS=true
+    -----
+    Status: OK  (disabled)
+    Ethernet: 02:12:34:00:00:02  (disabled)
+    Device: zt34000002  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    -----
+    Addresses  (disabled)
+    172.27.4.20/16  → copy "172.27.4.20"
+    -----
+    Routes  (disabled)
+    172.27.0.0/16  → copy "172.27.0.0/16"
+    -----
+    Disconnect  → disconnect c0ffee1234000002
+[x] lab_01 (c0ffee1234000003) ▸
+    Network ID: c0ffee1234000003  → copy "c0ffee1234000003"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000003 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000003 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000003 allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee1234000003 allowDNS=true
+    -----
+    Status: OK  (disabled)
+    Ethernet: 02:12:34:00:00:03  (disabled)
+    Device: zt34000003  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    -----
+    Addresses  (disabled)
+    10.10.1.2/24  → copy "10.10.1.2"
+    -----
+    Routes  (disabled)
+    10.10.1.0/24  → copy "10.10.1.0/24"
+    -----
+    Disconnect  → disconnect c0ffee1234000003
+[x] ipv6_only (c0ffee1234000004) ▸
+    Network ID: c0ffee1234000004  → copy "c0ffee1234000004"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000004 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000004 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000004 allowDefault=true
+    [x] Allow DNS Configuration  → set c0ffee1234000004 allowDNS=false
+    -----
+    Status: OK  (disabled)
+    Ethernet: 02:12:34:00:00:04  (disabled)
+    Device: zt34000004  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: v6.example  (disabled)
+    -----
+    Addresses  (disabled)
+    fdc0:ffee:1234:0:499:93a1:b2c3:d4e5/88  → copy "fdc0:ffee:1234:0:499:93a1:b2c3:d4e5"
+    fcaa:bbcc:dda1:b2c3:d4e5::1/40  → copy "fcaa:bbcc:dda1:b2c3:d4e5::1"
+    -----
+    Routes  (disabled)
+    2001:db8:42::/48 via fdc0:ffee:1234:0:499:9300:0:1  → copy "2001:db8:42::/48"
+    -----
+    Disconnect  → disconnect c0ffee1234000004
+[ ] c0ffee1234000005 ▸
+    Network ID: c0ffee1234000005  → copy "c0ffee1234000005"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000005 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000005 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000005 allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee1234000005 allowDNS=true
+    -----
+    Status: Requesting configuration  (disabled)
+    Ethernet: 02:12:34:00:00:05  (disabled)
+    Device: zt34000005  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    -----
+    Disconnect  → disconnect c0ffee1234000005
+[ ] private_net (c0ffee1234000006) ▸
+    Network ID: c0ffee1234000006  → copy "c0ffee1234000006"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000006 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000006 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000006 allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee1234000006 allowDNS=true
+    -----
+    Status: Access denied  (disabled)
+    Ethernet: 02:12:34:00:00:06  (disabled)
+    Device: zt34000006  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    -----
+    Disconnect  → disconnect c0ffee1234000006
+[ ] c0ffee1234000007 ▸
+    Network ID: c0ffee1234000007  → copy "c0ffee1234000007"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000007 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000007 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000007 allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee1234000007 allowDNS=true
+    -----
+    Status: Network not found  (disabled)
+    Ethernet: 02:12:34:00:00:07  (disabled)
+    Device: zt34000007  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    -----
+    Disconnect  → disconnect c0ffee1234000007
+[ ] tap_broken (c0ffee1234000008) ▸
+    Network ID: c0ffee1234000008  → copy "c0ffee1234000008"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000008 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000008 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000008 allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee1234000008 allowDNS=true
+    -----
+    Status: Port error  (disabled)
+    Ethernet: 02:12:34:00:00:08  (disabled)
+    Device: zt34000008  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    -----
+    Disconnect  → disconnect c0ffee1234000008
+[ ] future-net (c0ffee1234000009) ▸
+    Network ID: c0ffee1234000009  → copy "c0ffee1234000009"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000009 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000009 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000009 allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee1234000009 allowDNS=true
+    -----
+    Status: ZeroTier is too old for this network  (disabled)
+    Ethernet: 02:12:34:00:00:09  (disabled)
+    Device: zt34000009  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    -----
+    Disconnect  → disconnect c0ffee1234000009
+[ ] sso_corp (c0ffee123400000a) ▸
+    Network ID: c0ffee123400000a  → copy "c0ffee123400000a"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee123400000a allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee123400000a allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee123400000a allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee123400000a allowDNS=true
+    -----
+    Status: Authentication required  (disabled)
+    Ethernet: 02:12:34:00:00:0a  (disabled)
+    Device: zt3400000a  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    -----
+    SSO: not logged in  (disabled)
+    Open SSO Login URL…  → open "https://sso.example.com/authorize?nwid=c0ffee123400000a&state=mock"
+    -----
+    Disconnect  → disconnect c0ffee123400000a
+[x] a very long network name that keeps going — caf… (c0ffee123400000b) ▸
+    Network ID: c0ffee123400000b  → copy "c0ffee123400000b"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee123400000b allowManaged=false
+    [x] Allow Global IPs  → set c0ffee123400000b allowGlobal=false
+    [x] Allow Default Route Override  → set c0ffee123400000b allowDefault=false
+    [x] Allow DNS Configuration  → set c0ffee123400000b allowDNS=false
+    -----
+    Status: OK  (disabled)
+    Ethernet: 02:12:34:00:00:0b  (disabled)
+    Device: zt3400000b  (disabled)
+    Type: Public  (disabled)
+    DNS Domain: corp.example  (disabled)
+    -----
+    Addresses  (disabled)
+    10.200.0.9/16  → copy "10.200.0.9"
+    203.0.113.9/32  → copy "203.0.113.9"
+    -----
+    Routes  (disabled)
+    0.0.0.0/0 via 10.200.0.1  → copy "0.0.0.0/0"
+    10.200.0.0/16  → copy "10.200.0.0/16"
+    192.168.1.0/24 via 10.200.0.1  → copy "192.168.1.0/24"
+    192.168.2.0/24 via 10.200.0.1  → copy "192.168.2.0/24"
+    192.168.3.0/24 via 10.200.0.1  → copy "192.168.3.0/24"
+    192.168.4.0/24 via 10.200.0.1  → copy "192.168.4.0/24"
+    192.168.5.0/24 via 10.200.0.1  → copy "192.168.5.0/24"
+    192.168.6.0/24 via 10.200.0.1  → copy "192.168.6.0/24"
+    192.168.7.0/24 via 10.200.0.1  → copy "192.168.7.0/24"
+    192.168.8.0/24 via 10.200.0.1  → copy "192.168.8.0/24"
+    -----
+    Disconnect  → disconnect c0ffee123400000b
+[ ] some_new_state (c0ffee123400000c) ▸
+    Network ID: c0ffee123400000c  → copy "c0ffee123400000c"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee123400000c allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee123400000c allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee123400000c allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee123400000c allowDNS=true
+    -----
+    Status: Unknown  (disabled)
+    Ethernet: 02:12:34:00:00:0c  (disabled)
+    Device: zt3400000c  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    -----
+    Disconnect  → disconnect c0ffee123400000c
+-----
+Saved Networks  (disabled)
+old_lab (c0ffee12340000aa) ▸
+    Reconnect  → reconnect c0ffee12340000aa
+    Forget  → forget c0ffee12340000aa
+-----
+[ ] Start at Login  → start-at-login=true
+About Penguintier  → about
+Quit  → quit

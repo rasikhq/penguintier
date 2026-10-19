@@ -1,0 +1,8 @@
+icon: offline
+tooltip: Penguintier: Waiting for ZeroTier system service…
+
+Waiting for ZeroTier system service…  (disabled)
+-----
+[ ] Start at Login  → start-at-login=true
+About Penguintier  → about
+Quit  → quit
