@@ -20,7 +20,7 @@ The first release.
   - One submenu per network: Network ID, the four Allow check boxes
     (Managed Addresses, Global IPs, Default Route Override, DNS
     Configuration), status, interface, MAC, type, DNS domain, addresses
-    and routes (click to copy; addresses without the `/prefix`), and
+    and routes (click to copy, addresses without the `/prefix`), and
     Disconnect.
   - Saved networks with Reconnect (with the saved settings) and Forget.
     The official tray app's saved networks

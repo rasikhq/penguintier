@@ -5,15 +5,14 @@
 <h1 align="center">Penguintier</h1>
 
 <p align="center">
-  A system tray app for <a href="https://www.zerotier.com/">ZeroTier</a> on Linux.<br>
-  The same menu as the official ZeroTier app on macOS and Windows, and
-  ZeroTier DNS that actually works on Linux.
+  A <a href="https://www.zerotier.com/">ZeroTier</a> tray app for Linux, with the same menu as the official app on macOS and Windows.<br>
+  It also makes ZeroTier's DNS settings work on Linux.
 </p>
 
 > [!NOTE]
-> **Unofficial; not affiliated with ZeroTier, Inc.** Penguintier talks to
-> the ZeroTier service you already have installed; it is not a replacement
-> for it.
+> Penguintier is an unofficial app and is not affiliated with ZeroTier, Inc.
+> It works with the ZeroTier service you already have installed and doesn't
+> replace it.
 
 <div align="center">
 <table>
@@ -27,96 +26,98 @@
   </tr>
   <tr>
     <td align="center"><sub>The tray menu</sub></td>
-    <td align="center"><sub>A network's submenu (click to enlarge)</sub></td>
+    <td align="center"><sub>A network's submenu</sub></td>
   </tr>
 </table>
 </div>
 
 ## What it does
 
-- **Your address:** "My Address: …" at the top; click it to copy.
-- **Join, leave, come back:** Join New Network… asks for a 16-digit network
-  ID. Disconnect keeps the network under Saved Networks with its settings,
-  so Reconnect brings it back as it was. Forget removes it.
-- **Per-network settings:** Allow Managed Addresses, Allow Global IPs,
-  Allow Default Route Override and Allow DNS Configuration, as check boxes.
-- **Per-network details:** status, interface, MAC address, type, DNS domain,
-  addresses and routes. Click an address to copy it (without the `/24`).
-- **SSO networks:** a "Log In to …" entry and one notification when a
-  network needs you to log in, plus the login's expiry time.
-- **The icon tells you the state:** online, offline, or needs attention.
-- **DNS for ZeroTier networks**, through systemd-resolved
-  ([how it works](#dns-for-zerotier-networks)).
-- **Start at Login**, About, Quit, and `penguintier doctor` for when
-  something doesn't work.
+Penguintier puts your ZeroTier node in the system tray. From its menu you
+can:
 
-Penguintier runs on Ubuntu 24.04+, Debian 12+, current Fedora and Linux
-Mint 22+ (x86_64). It shows its icon on any desktop whose panel supports
-tray icons (StatusNotifierItem, also called AppIndicator); see
-[your desktop](#3-check-your-desktops-tray).
+- see your node address and copy it with a click
+- join a network by its 16-digit ID, and leave it again
+- disconnect from a network and reconnect later with the same settings, or
+  forget it
+- turn Allow Managed Addresses, Allow Global IPs, Allow Default Route
+  Override and Allow DNS Configuration on or off for each network
+- check a network's status, interface, type, DNS domain, addresses and
+  routes, and copy any address
+- log in to networks that use SSO, with a notification when a login is due
+- have it start when you log in
+
+The icon changes when ZeroTier is offline or a network needs attention.
+When something isn't working, `penguintier doctor` tells you what is wrong
+and how to fix it.
+
+On Linux, ZeroTier ignores a network's DNS settings. Penguintier fills that
+gap through systemd-resolved ([how it works](#dns-for-zerotier-networks)).
+
+It runs on Ubuntu 24.04 and later, Debian 12 and later, current Fedora and
+Linux Mint 22 and later, on x86_64. The icon shows up on any desktop whose
+panel supports StatusNotifierItem (AppIndicator) icons, so
+[check your desktop](#3-check-your-desktops-tray) before installing.
 
 ## Install
 
 ### 1. Install ZeroTier
 
-Penguintier needs the ZeroTier service (`zerotier-one`). Install it from
-<https://www.zerotier.com/download/>; on Linux that is usually ZeroTier's
+Penguintier needs the ZeroTier service (`zerotier-one`). Get it from
+<https://www.zerotier.com/download/>. On Linux that usually means ZeroTier's
 install script, which adds their package repository:
 
 ```bash
 curl -s https://install.zerotier.com | sudo bash
 ```
 
-Check that it runs:
-
-```bash
-sudo zerotier-cli info
-```
-
-It should print `200 info <your address> <version> ONLINE`.
+Afterwards, `sudo zerotier-cli info` should print
+`200 info <your address> <version> ONLINE`.
 
 ### 2. Install Penguintier
 
 Download the package for your distribution from the
-[latest release](https://github.com/rasikhq/penguintier/releases/latest),
-then install it with your package manager (it pulls in what it needs).
+[latest release](https://github.com/rasikhq/penguintier/releases/latest)
+and install it with your package manager, which also pulls in everything it
+needs.
 
-**Debian, Ubuntu, Linux Mint, Pop!_OS**
+On Debian, Ubuntu, Linux Mint and Pop!_OS:
 
 ```bash
 sudo apt install ./penguintier_0.1.0_amd64.deb
 ```
 
-**Fedora**
+On Fedora:
 
 ```bash
 sudo dnf install ./penguintier-0.1.0-1.x86_64.rpm
 ```
 
-To check the download first, save `SHA256SUMS` from the same release next
-to it and run `sha256sum --check --ignore-missing SHA256SUMS`.
+To verify the download, put `SHA256SUMS` from the same release next to it
+and run `sha256sum --check --ignore-missing SHA256SUMS`.
 
-Then start **Penguintier** from your app menu. To update, install a newer
-package the same way.
+Then start Penguintier from your app menu. Updates install the same way.
 
 ### 3. Check your desktop's tray
 
-| Desktop | What to do |
-|---|---|
-| KDE Plasma | Nothing; it works as is. |
-| Xfce | Nothing with the default panel. If your panel has no tray, add the "Status Tray Plugin". |
-| Cinnamon (Linux Mint) | Nothing; it works as is. |
-| COSMIC (Pop!_OS) | Nothing; it works as is. |
-| sway, Hyprland, niri with waybar | Nothing, as long as `tray` is in your waybar modules (it is in the default config). |
-| MATE, Budgie, LXQt | Works once the panel has a tray applet. |
-| **GNOME** | **Needs the AppIndicator extension** (see below). Ubuntu ships it turned on. |
+Most desktops show the icon without any setup:
+
+- KDE Plasma, Cinnamon (Linux Mint) and COSMIC (Pop!_OS) work out of the
+  box.
+- Xfce works with its default panel. If you removed the tray from it, add
+  the "Status Tray Plugin" back.
+- sway, Hyprland and niri work with waybar, as long as `tray` is in your
+  waybar modules. The default config has it.
+- MATE, Budgie and LXQt need a tray applet on the panel.
+- GNOME needs an extension (see below).
 
 #### GNOME
 
 GNOME only shows tray icons with the "AppIndicator and KStatusNotifierItem
-Support" extension. **Ubuntu** installs and turns it on by default, so there
-is nothing to do. Elsewhere, install it, then **log out and back in**
-(GNOME on Wayland only finds new extensions at login), then turn it on:
+Support" extension. Ubuntu ships it installed and turned on, so Ubuntu users
+can skip this part. On other distributions, install the extension, log out
+and back in (GNOME on Wayland only picks up new extensions at login), and
+then turn it on:
 
 | Distribution | Install | Turn on |
 |---|---|---|
@@ -124,132 +125,136 @@ is nothing to do. Elsewhere, install it, then **log out and back in**
 | Fedora | `sudo dnf install gnome-shell-extension-appindicator` | `gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com` |
 | Others | from [extensions.gnome.org](https://extensions.gnome.org/extension/615/) | `gnome-extensions enable appindicatorsupport@rgcjonas.gmail.com` |
 
-The Debian/Ubuntu package and the extensions.gnome.org version have
-different IDs, which is why the commands differ. You can also turn it on in
-the Extensions app.
+The Debian package and the extensions.gnome.org version use different IDs,
+which is why the commands differ. The Extensions app can turn it on as well.
 
-If Penguintier finds no tray when it starts, it shows a notification with
-the steps for your desktop. On GNOME, a left click opens the menu after a
-short pause (GNOME waits to see if it's a double click), and GNOME doesn't
-show tray tooltips.
+If Penguintier can't find a tray when it starts, it shows a notification
+with these steps for your desktop.
 
-## First run: authorizing Penguintier
+Two things work differently on GNOME. A left click opens the menu after a
+short pause, because GNOME first waits to see whether it's a double click.
+And GNOME doesn't show tray tooltips.
 
-The first time you start Penguintier, your desktop asks for your password:
+## First run
+
+The first time you start Penguintier, your desktop asks for your password
+with this message:
 
 > Penguintier needs to read the ZeroTier service's API token so it can show
 > and change your ZeroTier networks.
 
-ZeroTier only lets programs that know its API token control it, and the
-token file (`/var/lib/zerotier-one/authtoken.secret`) is readable only by
-root. After you enter your password, Penguintier saves a **copy of the
-token in `~/.zeroTierOneAuthToken`**, readable only by you, so it doesn't
-have to ask again. `zerotier-cli` reads the same file, so it then works
-without `sudo` too.
+ZeroTier only accepts commands from programs that know its API token, and
+only root can read the token file, `/var/lib/zerotier-one/authtoken.secret`.
+Once you enter your password, Penguintier keeps a copy of the token in
+`~/.zeroTierOneAuthToken` that only you can read, so it won't need to ask
+again. `zerotier-cli` uses the same file, which means it works without
+`sudo` from then on.
 
-If you close the prompt, nothing happens; the menu shows
-"Authorize Penguintier…" so you can do it later. Penguintier also turns on
-**Start at Login** after the first successful start (uncheck it in the
-menu to stop that).
+If you close the prompt instead, nothing changes, and the menu offers
+"Authorize Penguintier…" for later. After the first successful start,
+Penguintier also turns on Start at Login. Uncheck it in the menu if you
+don't want that.
 
 ### What the token copy means for security
 
-- Whoever has the token can fully control ZeroTier on this computer:
-  join and leave networks and change their settings, including **Allow
-  Default Route Override**, which can send all your traffic through a
-  network.
-- With the copy in your home folder, **any program running as you** can do
-  that too, without a password prompt. Other users on the computer can't
-  read it (the file is mode 0600, and Penguintier refuses to use it if
-  that changes).
-- To remove the copy, run `penguintier deauthorize`. A Penguintier that is
-  already running keeps working until you quit it; the next start asks
-  again.
-- Penguintier's DNS service never uses your copy: systemd hands it a
-  private copy of the token when it starts.
+Anyone with the token has full control of ZeroTier on this computer. They
+can join and leave networks and change their settings, including Allow
+Default Route Override, which can send all of your traffic through a
+network.
+
+With the copy in your home folder, any program running under your account
+has that control too, without a password prompt. Other users on the
+computer can't read it. The file is mode 0600, and Penguintier refuses to
+use it if that ever changes.
+
+`penguintier deauthorize` deletes the copy. A Penguintier that is already
+running keeps working until you quit it, and the next start asks for your
+password again.
+
+The DNS service never uses your copy. systemd hands it a private copy of
+the token when it starts.
 
 ## DNS for ZeroTier networks
 
-A ZeroTier network can carry DNS settings: a domain (say `office.example`)
-and the DNS servers that answer for it. The network's admin sets them in
-ZeroTier Central or their own controller.
+A ZeroTier network can carry DNS settings: a domain such as
+`office.example`, and the DNS servers that answer for it. The network's
+admin sets them in ZeroTier Central or on their own controller.
 
 ### Why "Allow DNS Configuration" does nothing on Linux
 
-On macOS and Windows, checking **Allow DNS Configuration** makes ZeroTier
-send queries for that domain to the network's DNS servers. On Linux the
-ZeroTier service saves the setting but doesn't apply it; that part was
+On macOS and Windows, checking Allow DNS Configuration makes ZeroTier send
+lookups for that domain to the network's DNS servers. On Linux the ZeroTier
+service stores the setting but never applies it, because that part was
 never implemented there
 ([ZeroTierOne#2492](https://github.com/zerotier/ZeroTierOne/issues/2492)).
-So `fileserver.office.example` doesn't resolve, even with the box checked.
+With the box checked, `fileserver.office.example` still doesn't resolve.
 
 ### How Penguintier does it
 
-The package installs a small system service, **penguintier-dnsd**. It
-runs as its own unprivileged user and checks your networks every 5
-seconds. For each network that has Allow DNS Configuration on, is
-connected and has a DNS domain and servers, it tells
-**systemd-resolved**: "on this network's interface, send queries for this
-domain to these servers."
+The package installs a small system service, `penguintier-dnsd`, which runs
+as its own unprivileged user. Every 5 seconds it looks at your networks. For
+each one that has Allow DNS Configuration on, is connected and has a DNS
+domain and servers, it tells systemd-resolved to send lookups for that
+domain to those servers, on that network's interface only.
 
-- It sets the domain as **routing-only** (`~office.example`) and doesn't
-  make the network a default DNS route. So only names under that domain
-  go to the network's DNS servers; everything else keeps using your normal
-  DNS, as before.
-- It **leaves alone** any interface whose DNS it didn't set itself, so it
-  steps aside for other tools (and for ZeroTier, if it ever does this
-  itself on Linux).
-- Turning the setting off, leaving the network or stopping the service
-  removes what it set.
-- If systemd-resolved isn't running, it waits and applies the settings as
-  soon as it starts.
+The domain is set as routing-only (`~office.example`), and the network never
+becomes your default DNS. Only names under the network's domain go to its
+servers. Everything else resolves exactly as before.
 
-Each network's submenu shows a **DNS** row:
+The service only manages settings it made itself. If another tool has
+already put DNS settings on a ZeroTier interface, the service leaves that
+interface alone, and it will do the same for ZeroTier if ZeroTier ever
+handles DNS itself on Linux. Turning the option off, leaving the network or
+stopping the service removes the settings again. If systemd-resolved isn't
+running yet, the service waits and applies the settings as soon as it
+starts.
+
+Each network's submenu has a DNS row that shows where things stand:
 
 | Row | Meaning |
 |---|---|
-| DNS: applied | Names under the network's domain go to its DNS servers. |
+| DNS: applied | Lookups under the network's domain go to its DNS servers. |
 | DNS: not requested (Allow DNS is off) | Check Allow DNS Configuration to use the network's DNS. |
 | DNS: network has no DNS | The network's admin hasn't set a DNS domain and servers. |
-| DNS: waiting for systemd-resolved | This computer doesn't run systemd-resolved; see below. |
-| DNS: daemon not running | `penguintier-dnsd` is stopped; run `penguintier doctor`. |
-| DNS: link managed by systemd-networkd | systemd-networkd manages this interface, so resolved won't take settings from other programs. |
-| DNS: set by another program | Something else set DNS on this interface; Penguintier leaves it alone. |
+| DNS: waiting for systemd-resolved | This computer doesn't run systemd-resolved. See the next section. |
+| DNS: daemon not running | `penguintier-dnsd` is stopped. Run `penguintier doctor` to see why. |
+| DNS: link managed by systemd-networkd | systemd-networkd manages this interface, and resolved won't take DNS settings for it from other programs. |
+| DNS: set by another program | Another tool set DNS on this interface, so Penguintier stays out of the way. |
 
 ### Enable DNS support… (Debian)
 
-Ubuntu, Linux Mint, Pop!_OS and Fedora run systemd-resolved already.
-**Debian doesn't**: there, NetworkManager writes `/etc/resolv.conf`
-directly, and the DNS row says "waiting for systemd-resolved". The menu
-then offers **Enable DNS support…**, which switches the computer to
-systemd-resolved:
+Ubuntu, Linux Mint, Pop!_OS and Fedora already run systemd-resolved. Debian
+doesn't. There, NetworkManager writes `/etc/resolv.conf` itself, and the DNS
+row says "waiting for systemd-resolved". In that case the menu offers
+Enable DNS support…, which switches the computer over to systemd-resolved in
+five steps:
 
-1. It checks that this is a setup it knows how to switch safely: Debian
-   (or a relative) with NetworkManager managing `/etc/resolv.conf`, as a
-   normal desktop install has. If not, it tells you why and changes
-   nothing.
-2. It asks you, and then asks for your password once.
-3. It backs up `/etc/resolv.conf`, `/etc/nsswitch.conf` and (if present)
-   `/etc/systemd/resolved.conf` to `/var/lib/penguintier/dns-backup/`.
-4. It installs the `systemd-resolved` package (only that one).
-5. It checks that names still resolve. If they don't, it **undoes
-   everything by itself** and puts the backed-up files back.
+1. It checks that your setup is one it knows how to switch safely: Debian
+   or a derivative, with NetworkManager managing `/etc/resolv.conf`, as on a
+   normal desktop install. If not, it explains why and changes nothing.
+2. It asks whether to go ahead, then asks for your password once.
+3. It backs up `/etc/resolv.conf`, `/etc/nsswitch.conf` and
+   `/etc/systemd/resolved.conf` (if there is one) to
+   `/var/lib/penguintier/dns-backup/`.
+4. It installs the `systemd-resolved` package and nothing else.
+5. It checks that names still resolve. If they don't, it undoes everything
+   by itself and restores the backed-up files.
 
-**To undo it later**, run:
+To switch back later, run:
 
 ```bash
 pkexec /usr/libexec/penguintier/penguintier-dns-helper undo
 ```
 
-That removes systemd-resolved again and restores the backed-up files.
+This removes systemd-resolved and restores the backed-up files.
 `penguintier doctor` shows whether the switch is on and prints the same
-command. If you want your old DNS setup back, undo the switch **before**
-uninstalling Penguintier, since the command comes with the package.
+command. The command ships with Penguintier, so if you want your old DNS
+setup back, undo the switch before you uninstall.
 
 ## Troubleshooting
 
-Run the doctor. It checks every part Penguintier depends on and says how
-to fix what's wrong:
+Start with the doctor. It checks everything Penguintier depends on and tells
+you how to fix whatever is wrong:
 
 ```bash
 penguintier doctor
@@ -273,24 +278,22 @@ Penguintier doctor
 No problems found.
 ```
 
-Common problems:
+Some common problems:
 
-- **No icon.** On GNOME, see [GNOME](#gnome). Elsewhere, make sure your
-  panel has a tray. `penguintier doctor` says which desktop it found.
-- **"Waiting for ZeroTier system service…"** The ZeroTier service isn't
-  running: `sudo systemctl enable --now zerotier-one`.
-- **No password prompt** (common on sway and other setups without a polkit
-  agent). `penguintier doctor` prints a command that saves the token copy
-  by hand.
-- **Copying does nothing.** Install `wl-clipboard` (Wayland) or `xclip`
-  (X11). Without them, Penguintier shows the text in a notification
-  instead.
-- **Logs:** `journalctl --user -t penguintier` for the tray,
-  `journalctl -u penguintier-dnsd` for the DNS service.
+| Problem | What to do |
+|---|---|
+| No icon | On GNOME, see [GNOME](#gnome). On other desktops, make sure the panel has a tray. `penguintier doctor` shows which desktop it detected. |
+| "Waiting for ZeroTier system service…" | The ZeroTier service isn't running. Start it with `sudo systemctl enable --now zerotier-one`. |
+| No password prompt | This happens on sway and other setups without a polkit agent. `penguintier doctor` prints a command that makes the token copy by hand. |
+| Copying does nothing | Install `wl-clipboard` (Wayland) or `xclip` (X11). Without either, Penguintier shows the text in a notification. |
+
+The tray logs to `journalctl --user -t penguintier`, and the DNS service to
+`journalctl -u penguintier-dnsd`.
 
 When you [report a bug](https://github.com/rasikhq/penguintier/issues),
-please attach `penguintier doctor --json`. It includes your ZeroTier
-address and network IDs; replace them if you'd rather not share them.
+please attach the output of `penguintier doctor --json`. It contains your
+ZeroTier address and network IDs, so replace them if you'd rather not share
+them.
 
 ## Command line
 
@@ -301,9 +304,9 @@ penguintier deauthorize [--yes] delete the token copy
 penguintier --version           print the version
 ```
 
-Started from a terminal, `penguintier` moves to the background and gives
-the terminal back; `--foreground` keeps it there with its log. See
-`man penguintier` for everything, including environment variables and
+Run from a terminal, `penguintier` moves itself to the background and gives
+you the terminal back. Add `--foreground` to keep it there with its log.
+`man penguintier` covers the rest, including environment variables and
 files.
 
 ## Uninstall
@@ -314,20 +317,20 @@ sudo apt remove penguintier      # Debian, Ubuntu, Mint
 sudo dnf remove penguintier      # Fedora
 ```
 
-Removing the package stops the DNS service, which removes the DNS settings
-it made. If you used "Enable DNS support…" and want your old DNS setup
-back, [undo it](#enable-dns-support-debian) first.
+Removing the package stops the DNS service, which takes its DNS settings
+with it. If you used Enable DNS support… and want your old DNS setup back,
+[undo it](#enable-dns-support-debian) before uninstalling.
 
-Your settings stay in `~/.config/penguintier/`, and the Start at Login
-entry in `~/.config/autostart/io.github.rasikhq.Penguintier.desktop`
-(your desktop ignores it once Penguintier is gone). Delete them if you
-want them gone.
+Your settings stay behind in `~/.config/penguintier/`, along with the Start
+at Login entry in `~/.config/autostart/io.github.rasikhq.Penguintier.desktop`.
+Your desktop ignores that entry once Penguintier is gone, but you can delete
+both for a clean slate.
 
 ## Build from source
 
-You need Go (it downloads the exact version pinned in `go.mod` by itself),
-[bun](https://bun.sh/) 1.3, make, and the GTK 3 and WebKitGTK 4.1
-development packages:
+You need Go, [bun](https://bun.sh/) 1.3, make, and the development packages
+for GTK 3 and WebKitGTK 4.1. Go downloads the exact version pinned in
+`go.mod` by itself.
 
 ```bash
 sudo apt install golang make libgtk-3-dev libwebkit2gtk-4.1-dev   # Debian, Ubuntu
@@ -346,27 +349,30 @@ make package                     # .deb and .rpm into dist/
 
 ## Contributing
 
-Bug reports, tests on more desktops and pull requests are welcome. Before
-writing code, read:
+Bug reports, test results from more desktops and pull requests are all
+welcome. Before writing code, have a look at these:
 
-- [CLAUDE.md](CLAUDE.md): the project rules (Go style, file ownership,
-  commits). The Go code is kept plain and well commented, so people new to
-  Go can read and review it.
-- [docs/architecture.md](docs/architecture.md): how the parts fit
-  together, and the contracts between them.
-- [docs/testing.md](docs/testing.md): how each part is tested, including
-  a fake ZeroTier API (`make tray-mock`) for working on the tray without
-  touching your real networks.
+- [CLAUDE.md](CLAUDE.md) holds the project rules: Go style, file ownership
+  and commit conventions. Penguintier is built with the help of Claude,
+  Anthropic's AI assistant, which works from the same file.
+- [docs/architecture.md](docs/architecture.md) explains how the parts fit
+  together and the contracts between them.
+- [docs/testing.md](docs/testing.md) describes how each part is tested. It
+  includes a fake ZeroTier API (`make tray-mock`) for working on the tray
+  without touching your real networks.
 
-Penguintier is written from scratch from ZeroTier's documented API and the
-official app's observed behavior. Please don't copy code from ZeroTier's
-own desktop app (it is under a different license).
+The Go code is kept plain and well commented, so people who are new to Go
+can read and review it.
+
+Penguintier is written from scratch, based on ZeroTier's documented API and
+the official app's observed behavior. Please don't copy code from ZeroTier's
+own desktop app, which is under a different license.
 
 ## License
 
-[MIT](LICENSE). The packages also install
-`/usr/share/doc/penguintier/THIRD_PARTY_LICENSES` with the licenses of the
-libraries compiled into Penguintier.
+Penguintier is released under the [MIT license](LICENSE). The packages also
+install `/usr/share/doc/penguintier/THIRD_PARTY_LICENSES`, which holds the
+licenses of the libraries compiled into it.
 
-Penguintier is unofficial and not affiliated with ZeroTier, Inc. ZeroTier
-is a trademark of ZeroTier, Inc.
+Penguintier is not affiliated with ZeroTier, Inc. ZeroTier is a trademark of
+ZeroTier, Inc.

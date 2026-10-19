@@ -66,8 +66,8 @@ It has two Go modules:
   - the Wails window's WM class (`ProgramName` in `ui/main.go`, and
     `StartupWMClass` in the .desktop file),
   - the polkit action prefix (`io.github.rasikhq.Penguintier.read-token`).
-- The README and the About window say: "Unofficial; not affiliated with
-  ZeroTier, Inc."
+- The README and the About window say that Penguintier is unofficial and
+  not affiliated with ZeroTier, Inc.
 
 ### Install paths
 

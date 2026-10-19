@@ -979,9 +979,9 @@ awk -v v=0.1.0 -f scripts/changelog-section.awk CHANGELOG.md > /tmp/release-note
 env -u GITHUB_TOKEN ~/go/bin/goreleaser release --clean --skip=publish,announce --release-notes /tmp/release-notes.md
 ```
 
-The clone's `origin` points at the local folder; GoReleaser wants the
-GitHub address to name the release, but `--skip=publish,announce` means
-nothing is uploaded and no token is needed. Delete `/tmp/pt-release`
+The clone's `origin` points at the local folder, but GoReleaser wants the
+GitHub address to name the release. With `--skip=publish,announce` nothing
+is uploaded and no token is needed. Delete `/tmp/pt-release`
 afterwards.
 
 ### Test matrix
@@ -993,28 +993,28 @@ the packages in `debian:12`, `debian:13`, `ubuntu:24.04` and
 
 | Setup | Why it is in the matrix |
 |---|---|
-| Ubuntu 24.04 GNOME | The main target. AppIndicator extension preinstalled; systemd-resolved runs. DNS end to end with the self-test network. |
-| Fedora GNOME (current) | No tray until the extension is installed (the notice shows the `dnf` command and the upstream UUID); SELinux enforcing; rpm. |
-| Fedora KDE (current) | Tooltips; spec-style underscore escaping; KDE's notification and polkit agent. |
+| Ubuntu 24.04 GNOME | The main target. The AppIndicator extension is preinstalled and systemd-resolved runs, so DNS can be tested end to end with the self-test network. |
+| Fedora GNOME (current) | No tray until the extension is installed, so the notice should show the `dnf` command and the upstream UUID. Also SELinux in enforcing mode, and the rpm. |
+| Fedora KDE (current) | Tooltips, spec-style underscore escaping, and KDE's own notifications and polkit agent. |
 | Debian 13 GNOME (the dev machine) | "Enable DNS support…" on a real machine. |
 | Debian 12 Xfce | X11 (xclip), the oldest supported distro, no systemd-resolved: "Enable DNS support…" on Debian 12. |
 | Linux Mint 22 Cinnamon | The XApp status applet as tray host. |
-| Fedora Sway (current) | waybar's tray; possibly no polkit agent (the first-run prompt then fails, and `doctor` prints the manual command). |
+| Fedora Sway (current) | waybar's tray. There may be no polkit agent, in which case the first-run prompt fails and `doctor` prints the manual command. |
 | Pop!_OS 24.04 COSMIC | COSMIC's status area applet. |
 
 #### Setting up the VMs (quickemu)
 
 VMs need hardware virtualization. If `/dev/kvm` doesn't exist, turn on
-"Intel Virtualization Technology" (VT-x; AMD: SVM) in the firmware setup
+"Intel Virtualization Technology" (VT-x, or SVM on AMD) in the firmware setup
 (press F2 or Del while the computer starts), then:
 
 ```
 ls -l /dev/kvm                    # must exist
-sudo adduser $USER kvm            # if it is crw-rw---- root kvm; then log out and back in
+sudo adduser $USER kvm            # if it is crw-rw---- root kvm, then log out and back in
 sudo apt install quickemu         # Debian 13 has 4.9.7
 ```
 
-One VM at a time with 4 GB of RAM fits a 16 GB machine; each disk grows
+One VM at a time with 4 GB of RAM fits a 16 GB machine, and each disk grows
 to about 20–30 GB. Make a folder for them and fetch each image (`quickget
 <os>` alone lists the releases and editions it knows):
 
@@ -1063,14 +1063,14 @@ with Ctrl+C when done.
 #### Common checklist (every setup)
 
 1. **Install.** ZeroTier first (`curl -s https://install.zerotier.com |
-   sudo bash`; `sudo zerotier-cli info` says ONLINE), then the package
+   sudo bash`, after which `sudo zerotier-cli info` says ONLINE), then the package
    (`sudo apt install ./penguintier_*_amd64.deb` or `sudo dnf install
    ./penguintier-*.rpm`). `man penguintier` opens. Penguintier is in the
    app menu with its icon.
-2. **Tray.** Start it from the app menu. The icon shows in the panel; a
+2. **Tray.** Start it from the app menu. The icon shows in the panel, and a
    left click opens the menu. Where there is no tray, one notification
-   with fix steps appears after about 10 s instead (follow them; the icon
-   then appears by itself).
+   with fix steps appears after about 10 s instead. Follow them, and the
+   icon then appears by itself.
 3. **Authorize.** The polkit prompt "Penguintier needs to read the
    ZeroTier service's API token…" opens by itself. After the password, the
    menu shows "My Address" and `ls -l ~/.zeroTierOneAuthToken` shows
@@ -1086,8 +1086,8 @@ with Ctrl+C when done.
    `chmod +x zt-mock && ./zt-mock --scenario many-networks`, and in a
    second one paste the two `export` lines it prints and run
    `XDG_CONFIG_HOME=$(mktemp -d) penguintier --foreground`. `lab_01`,
-   `private_net` and `some_new_state` show their underscores; the icon is
-   "attention"; the tooltip (where the desktop shows tooltips) says "12
+   `private_net` and `some_new_state` show their underscores, the icon is
+   "attention", and the tooltip (where the desktop shows tooltips) says "12
    networks, 5 need attention". Ctrl+C both, then start the real tray
    again.
 6. **Start at Login.** It is checked after the first run. Log out and in:
@@ -1114,12 +1114,12 @@ penguintier.
 #### Results
 
 Release candidate 0.1.0. "CI" = the container smoke test in
-`package.yml`; the VM rows are filled in as each setup is run.
+`package.yml`. The VM rows are filled in as each setup is run.
 
 | Setup | Date | Package | Result | Notes |
 |---|---|---|---|---|
-| Containers: install, upgrade, remove, purge (`smoke-test.sh`) | 2026-10-19 | RC snapshot of the P7 PR | pass | Run locally on debian:12, ubuntu:24.04 and fedora:latest (Fedora 44); CI runs all four images on every PR. The man page installs; lintian no longer reports `no-manual-page`. |
-| Release build from a tag (throwaway clone tagged v0.1.0) | 2026-10-19 | 0.1.0 | pass | `penguintier_0.1.0_amd64.deb`, `penguintier-0.1.0-1.x86_64.rpm`, `SHA256SUMS` checks; `--version` prints `penguintier 0.1.0`. |
+| Containers: install, upgrade, remove, purge (`smoke-test.sh`) | 2026-10-19 | RC snapshot of the P7 PR | pass | Run locally on debian:12, ubuntu:24.04 and fedora:latest (Fedora 44). CI runs all four images on every PR. The man page installs, and lintian no longer reports `no-manual-page`. |
+| Release build from a tag (throwaway clone tagged v0.1.0) | 2026-10-19 | 0.1.0 | pass | `penguintier_0.1.0_amd64.deb`, `penguintier-0.1.0-1.x86_64.rpm`, `SHA256SUMS` checks out, and `--version` prints `penguintier 0.1.0`. |
 | Debian 13 GNOME 48 Wayland (dev machine) | 2026-10-19 | snapshot 9bf93c4 | pass | Every P5 manual step, including "Enable DNS support…" (see P5). Re-check with the RC package before tagging. |
 | Ubuntu 24.04 GNOME | | | not run | |
 | Fedora GNOME | | | not run | |

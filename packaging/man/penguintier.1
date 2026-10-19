@@ -29,14 +29,14 @@ leaving networks, each network's settings, status, addresses and routes,
 SSO logins and saved networks.
 It talks to the local ZeroTier service,
 .BR zerotier\-one (8),
-through its API; it does not replace it.
+through its API, and does not replace it.
 .PP
 Penguintier also makes ZeroTier's \(lqAllow DNS Configuration\(rq work on
 Linux, through
-.BR systemd\-resolved (8);
-see
+.BR systemd\-resolved (8)
+(see
 .B DNS
-below.
+below).
 .PP
 The icon is a StatusNotifierItem (AppIndicator).
 It shows up on KDE Plasma, Xfce, Cinnamon, MATE, Budgie, LXQt, COSMIC and
@@ -54,12 +54,14 @@ Started from a terminal, it starts a copy of itself in the background
 (the same as
 .BR "penguintier \-\-foreground" ),
 with its log in the systemd journal, and returns at once.
-Ctrl+C or closing the terminal does not quit it; use Quit in its menu.
+Ctrl+C or closing the terminal does not quit it.
+Use Quit in its menu instead.
 .IP \(bu 2
 Only one copy runs per login.
-Starting it again makes the running copy show \(lqPenguintier is already running\(rq; the new one exits with status 0.
+Starting it again makes the running copy show \(lqPenguintier is already running\(rq, and the new one exits with status 0.
 .IP \(bu 2
-The first time it runs (not at login), it asks for authorization; see
+The first time it runs (not at login), it asks for authorization, as
+described under
 .B AUTHORIZATION
 below.
 After the first start that reaches ZeroTier, it turns on Start at Login,
@@ -121,7 +123,7 @@ and
 .BR details )
 and
 .BR networks .
-Fields are only ever added; a change of meaning bumps
+Fields are only ever added, and a change of meaning bumps
 .BR schemaVersion .
 The report contains your ZeroTier node address and network IDs.
 .TP
@@ -273,7 +275,7 @@ also exits 0 when there are only warnings.
 .B 1
 Failure.
 .B doctor
-exits 1 when a check failed;
+exits 1 when a check failed, and
 .B deauthorize
 exits 1 when nothing was deleted.
 .TP
