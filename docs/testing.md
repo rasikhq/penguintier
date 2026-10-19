@@ -235,8 +235,152 @@ Icons:
 
 ## P3: Tray core
 
-TODO(P3): golden menu snapshots for every zt-mock scenario, the no-op update
-check, `make tray-mock`.
+### Unit tests (`make test`)
+
+`internal/tray`:
+
+- **Golden menus.** `TestBuildGolden` runs every zt-mock scenario (plus
+  "token-missing", a client without a token) through `httptest`, builds the
+  menu, and compares the icon, tooltip and menu with
+  `internal/tray/testdata/golden/<scenario>.txt`. In those files `[x]` /
+  `[ ]` are check boxes, `▸` opens a submenu, `(disabled)` is greyed out
+  and `→` is what a click does. After an intended menu change, rewrite them
+  and review the diff:
+
+  ```
+  go test ./internal/tray -update
+  git diff internal/tray/testdata
+  ```
+
+  A new zt-mock scenario makes this test fail until its golden file exists.
+- **Tray rules.** `TestBuildRules`: entry keys are unique, the menu is at
+  most two levels deep, networks are sorted by ID.
+- **No-op update.** `TestRefreshNoChangeNoCalls` polls every scenario
+  again and fails if the controller calls the tray library at all when
+  nothing changed. `TestRefreshUpdatesInPlace` (a changed check box is one
+  `Check` call) and `TestRefreshRebuildsOnStructureChange` (a network left
+  → `ResetMenu`) cover the other two cases.
+- **Click goroutines.** `TestRebuildStopsClickWatchers` rebuilds the menu
+  100 times and checks the goroutine count stays flat; `TestRun` drives
+  the real loop: a click arrives on the library's channel, Quit ends the
+  loop with every click goroutine stopped.
+- **Actions** against zt-mock: copy (addresses without `/prefix`),
+  check boxes, Disconnect → Reconnect (with the saved settings) → Forget,
+  Join with the "Joining…" row, the one-time SSO notification and its
+  action, Authorize, the About fallback, Quit.
+- **Underscores in labels** (see below): `TestEscapeLabel*` check the
+  escaping against both host behaviors, for every label of every golden
+  menu. `TestTrayHostStyle` runs the host detection on a private
+  `dbus-daemon`.
+- **Join dialog:** fake `penguintier-ui`, `zenity` and `kdialog` scripts
+  check exit codes (0 = ID, 1 = cancel, other = try the next one), the
+  `join` argument and `WEBKIT_DISABLE_DMABUF_RENDERER=1`. `TestFindHelper`
+  checks the helper lookup order.
+
+`internal/platform`:
+
+- `clipboard`: the tool order (wl-copy on Wayland, then xclip, then xsel)
+  with fake tools in `$PATH`.
+- `notify`: a fake notification service on a private `dbus-daemon`
+  (skipped if `dbus-daemon` is not installed): body markup escaping, hints,
+  actions, and that an `ActionInvoked` signal from another program is
+  ignored.
+- `open`: only `http`/`https` addresses reach a fake `xdg-open`.
+
+### Underscores in menu labels
+
+The tray menu goes over D-Bus as "dbusmenu", where `_` marks a keyboard
+shortcut and is hidden, so a network called `lab_01` shows as `lab01`
+unless escaped. Hosts disagree on the escaping:
+
+- KDE Plasma and GTK-based hosts follow the spec: `__` shows one `_`.
+- GNOME Shell's AppIndicator extension (version 59) removes only the
+  first `_` that is followed by another character, and shows `__` as two.
+
+So the tray asks D-Bus who owns `org.kde.StatusNotifierWatcher`; if that
+process is `gnome-shell` it escapes only the first underscore, otherwise
+all of them. Check it with `make tray-mock MOCK_ARGS="--scenario
+many-networks"`: `lab_01`, `private_net` and `some_new_state` must show
+exactly like that.
+
+To see the menu as the tray host gets it (labels after escaping):
+
+```
+busctl --user call org.kde.StatusNotifierItem-$(pgrep -f 'bin/penguintier$')-1 \
+  /StatusNotifierItem/menu com.canonical.dbusmenu GetLayout iias -- 0 -1 0
+```
+
+(The library answers the first call one level deep only, a workaround for
+GTK hosts; call it twice.)
+
+### Before testing on GNOME
+
+GNOME has no tray without the AppIndicator extension, and copying needs
+wl-clipboard (or xclip):
+
+```
+sudo apt install gnome-shell-extension-appindicator wl-clipboard
+gnome-extensions enable ubuntu-appindicators@ubuntu.com
+```
+
+Log out and back in after installing (GNOME on Wayland only finds new
+extensions at login). Without a tray host the tray logs `failed to
+register: The name org.kde.StatusNotifierWatcher was not provided`.
+
+### Manual: `make tray-mock`
+
+```
+make ui-build                                   # once: the Join and About windows
+make tray-mock                                  # scenario "online"
+make tray-mock MOCK_ARGS="--scenario many-networks"
+```
+
+The tray starts against zt-mock. Type a scenario name and Enter in the
+terminal to switch; the menu follows within 2.5 s. Ctrl+C stops both.
+
+The tray keeps its saved networks in `bin/tray-mock-config/`, not in your
+real `~/.config/penguintier/`.
+
+- **online**: icon online. "My Address: a1b2c3d4e5" copies and shows a
+  "Copied" notification. Two network submenus with check marks. Toggle a
+  check box: it flips within a moment and the menu doesn't flicker.
+  Disconnect `office` → it moves under Saved Networks; Reconnect → back,
+  with the same check boxes; Disconnect + Forget → gone.
+- **many-networks**: icon attention; tooltip (KDE) "12 networks, 5 need
+  attention"; underscores show as typed; the long name ends in "…"; a
+  "Log In to sso_corp…" entry at the top opens the fake SSO page in the
+  browser (it doesn't exist; the browser opening is the test). One
+  notification "ZeroTier login required" appears once, with "Open login".
+- **sso-required**: the same login entry and notification for
+  `corp-sso`; `partner-sso` shows "SSO login expires <time>".
+- **access-denied**: icon attention, the network shows "Status: Access
+  denied" and no check mark.
+- **service-down**: icon offline, only "Waiting for ZeroTier system
+  service…" plus the bottom section. Switch back to **online**: the menu
+  returns.
+- **unauthorized**: icon attention, "Authorize Penguintier…" shows a
+  notification with the manual command (P5 makes it real).
+- **joining**: Join New Network… → enter any 16-hex ID → a disabled
+  "Joining <id>…" row for 5 s, then the network with "Requesting
+  configuration", and after 10 s more its name and address.
+- Left-click on the icon opens the menu (no separate action).
+- About Penguintier opens the About window; Quit removes the icon.
+
+### Manual: `make run` against the real service
+
+Needs `~/.zeroTierOneAuthToken` (see the token helper above). Join a
+network you control, or a throwaway one: your node address + `dead01`
+never gets a configuration but still joins and leaves.
+
+- Join New Network… → enter the ID → "Joining…" until it is listed.
+- Toggle "Allow DNS Configuration" (and the others): `zerotier-cli
+  listnetworks -j` shows the new values.
+- Click an address and paste it somewhere: no `/24` at the end.
+- Disconnect → the network moves to Saved Networks; Reconnect → it is
+  joined again with the same check boxes; Disconnect, then Forget → gone,
+  also from `~/.config/penguintier/saved_networks.json`.
+- `sudo systemctl stop zerotier-one` → "Waiting for ZeroTier system
+  service…" and the offline icon; start it again → the menu comes back.
 
 ## P4: DNS daemon
 
