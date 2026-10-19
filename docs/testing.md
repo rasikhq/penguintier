@@ -1118,7 +1118,8 @@ Release candidate 0.1.0. "CI" = the container smoke test in
 
 | Setup | Date | Package | Result | Notes |
 |---|---|---|---|---|
-| CI: debian:12, debian:13, ubuntu:24.04, fedora:latest (install, upgrade, remove, purge) | 2026-10-19 | 0.1.0 RC (this PR) | pass | Runs on every PR. |
+| Containers: install, upgrade, remove, purge (`smoke-test.sh`) | 2026-10-19 | RC snapshot of the P7 PR | pass | Run locally on debian:12, ubuntu:24.04 and fedora:latest (Fedora 44); CI runs all four images on every PR. The man page installs; lintian no longer reports `no-manual-page`. |
+| Release build from a tag (throwaway clone tagged v0.1.0) | 2026-10-19 | 0.1.0 | pass | `penguintier_0.1.0_amd64.deb`, `penguintier-0.1.0-1.x86_64.rpm`, `SHA256SUMS` checks; `--version` prints `penguintier 0.1.0`. |
 | Debian 13 GNOME 48 Wayland (dev machine) | 2026-10-19 | snapshot 9bf93c4 | pass | Every P5 manual step, including "Enable DNS support…" (see P5). Re-check with the RC package before tagging. |
 | Ubuntu 24.04 GNOME | | | not run | |
 | Fedora GNOME | | | not run | |
