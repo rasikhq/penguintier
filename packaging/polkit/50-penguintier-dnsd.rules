@@ -1,0 +1,14 @@
+// Placeholder from P0. Phase P4 owns this file. See docs/architecture.md.
+//
+// P4 will allow the "penguintier-dns" system user to use only these
+// systemd-resolved actions:
+//   org.freedesktop.resolve1.set-dns-servers
+//   org.freedesktop.resolve1.set-domains
+//   org.freedesktop.resolve1.set-default-route
+//   org.freedesktop.resolve1.revert
+//
+// Until then this rule grants nothing: returning undefined lets polkit's
+// other rules and defaults decide.
+polkit.addRule(function (action, subject) {
+  return undefined;
+});

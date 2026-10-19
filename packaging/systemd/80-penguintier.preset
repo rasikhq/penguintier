@@ -1,0 +1,3 @@
+# Placeholder from P0. Phase P6 owns this file. See docs/architecture.md.
+# Enable the path unit; it starts penguintier-dnsd.service when needed.
+enable penguintier-dnsd.path

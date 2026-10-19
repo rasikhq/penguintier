@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Placeholder from P0. Phase P2 replaces it with the real brand icon. -->
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="#1f2937"/>
+  <ellipse cx="64" cy="70" rx="30" ry="38" fill="#f9fafb"/>
+  <circle cx="54" cy="56" r="5" fill="#1f2937"/>
+  <circle cx="74" cy="56" r="5" fill="#1f2937"/>
+  <path d="M57 66 L71 66 L64 77 Z" fill="#f59e0b"/>
+</svg>

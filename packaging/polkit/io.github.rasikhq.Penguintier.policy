@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+  Placeholder from P0. Phase P1 owns this file. See docs/architecture.md.
+
+  One action: let the tray run penguintier-token-helper through pkexec to
+  read ZeroTier's local API token. The admin password is asked once per
+  session at most (auth_admin_keep).
+-->
+<policyconfig>
+  <vendor>Penguintier</vendor>
+  <vendor_url>https://github.com/rasikhq/penguintier</vendor_url>
+  <icon_name>io.github.rasikhq.Penguintier</icon_name>
+
+  <action id="io.github.rasikhq.Penguintier.read-token">
+    <description>Read the ZeroTier API token</description>
+    <message>Penguintier needs to read the ZeroTier service token to control your networks.</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/penguintier/penguintier-token-helper</annotate>
+  </action>
+</policyconfig>
