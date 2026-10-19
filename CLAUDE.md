@@ -70,5 +70,8 @@ package's `deps.go` once the package imports that dependency for real.
 - `CGO_ENABLED=0` must keep building every root-module binary.
 - Never copy code from zerotier/DesktopUI (MPL-2.0). Build from observed
   behavior and the API docs. CI runs a license check.
+- `third_party/` holds patched copies of dependencies (now fyne.io/systray,
+  used through a `replace` in `go.mod`). Keep their license files, mark
+  every changed file, and list each change in its `PENGUINTIER.md`.
 - Commits: author `Rasikh Q. <rasikhqadeer98@gmail.com>` (set in the repo's
   git config). No `Co-Authored-By:` trailers. One PR per phase into `master`.
