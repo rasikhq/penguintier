@@ -64,7 +64,7 @@ func uiEnv() []string {
 // window.
 func (u uiLauncher) askNetworkID(ctx context.Context) (ztapi.NetworkID, bool, error) {
 	if path, err := u.findUI(); err != nil {
-		slog.Info("Join window not found; trying zenity and kdialog", "err", err)
+		slog.Info("Join window not found, falling back to zenity and kdialog", "err", err)
 	} else {
 		out, code, err := runDialog(ctx, path, []string{"join"}, uiEnv())
 		switch {
@@ -73,7 +73,7 @@ func (u uiLauncher) askNetworkID(ctx context.Context) (ztapi.NetworkID, bool, er
 		case err == nil && code == 1:
 			return "", false, nil // the user cancelled
 		default:
-			slog.Warn("Join window failed; trying zenity and kdialog", "path", path, "exit", code, "err", err)
+			slog.Warn("Join window failed, falling back to zenity and kdialog", "path", path, "exit", code, "err", err)
 		}
 	}
 

@@ -86,7 +86,8 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		// Checked here and not only by polkit: running it with sudo by
 		// mistake as another user must fail clearly.
 		if os.Geteuid() != 0 {
-			fmt.Fprintln(stderr, "penguintier-dns-helper: must run as root; "+usage)
+			fmt.Fprintln(stderr, "penguintier-dns-helper: must run as root")
+			fmt.Fprintln(stderr, usage)
 			return exitUsage
 		}
 	default:

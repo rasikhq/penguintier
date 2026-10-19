@@ -109,7 +109,7 @@ func runTray(ctx context.Context, autostartRun bool) error {
 	go func() {
 		select {
 		case <-lock.Lost():
-			slog.Info("the session bus went away (logged out?); quitting")
+			slog.Info("quitting because the session bus went away (logged out?)")
 			cancel()
 		case <-trayCtx.Done():
 		}

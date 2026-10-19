@@ -173,7 +173,7 @@ cmd_up() {
 	# Join. An empty object keeps the default flags (allowDNS off).
 	api_call POST "/network/$nwid" '{}' >/dev/null
 
-	echo "Joined; waiting for the network to come up..."
+	echo "Joined. Waiting for the network to come up..."
 	local reply status
 	for _ in $(seq 1 30); do
 		reply=$(api_call GET "/network/$nwid")
@@ -221,10 +221,10 @@ cmd_status() {
 }
 
 cmd_down() {
-	has_controller || die "this node has no controller; leave your my.zerotier.com network with: go run ./cmd/ztctl leave <id>"
+	has_controller || die "this node has no controller, so leave your my.zerotier.com network with: go run ./cmd/ztctl leave <id>"
 	local nwid
 	nwid=$(find_network) || {
-		echo "No $network_name network found; nothing to do."
+		echo "No $network_name network found, so there is nothing to do."
 		return 0
 	}
 	api_call DELETE "/network/$nwid" >/dev/null

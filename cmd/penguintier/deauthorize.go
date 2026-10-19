@@ -39,7 +39,7 @@ func runDeauthorize(args []string, stdin io.Reader, stdout, stderr io.Writer) in
 	}
 	// Lstat looks at the path itself: a symlink is removed, not followed.
 	if _, err := os.Lstat(path); errors.Is(err, fs.ErrNotExist) {
-		fmt.Fprintf(stdout, "There is no token copy at %s; nothing to do.\n", path)
+		fmt.Fprintf(stdout, "There is no token copy at %s, so there is nothing to do.\n", path)
 		return 0
 	}
 

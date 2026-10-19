@@ -18,7 +18,7 @@ import (
 
 // ErrNoDBusDaemon means the dbus-daemon program is not installed. Tests
 // skip (or, in CI, fail) on it; see StartTestBus.
-var ErrNoDBusDaemon = errors.New("dbus-daemon is not installed (Debian/Ubuntu: apt install dbus-daemon; Fedora: dnf install dbus-daemon)")
+var ErrNoDBusDaemon = errors.New("dbus-daemon is not installed. Install it with “apt install dbus-daemon” on Debian and Ubuntu, or “dnf install dbus-daemon” on Fedora")
 
 // busConfig is a minimal bus configuration: listen on a socket in dir, and
 // let anyone (that is, the test's own user) own any name and call anything.

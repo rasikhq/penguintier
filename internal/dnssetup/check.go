@@ -119,14 +119,14 @@ func Check(f Facts) Verdict {
 	}
 	for _, p := range []string{packageResolvconf, packageOpenresolv} {
 		if f.Packages[p] == "installed" {
-			add("%s is installed; it also manages /etc/resolv.conf.", p)
+			add("%s is installed, and it also manages /etc/resolv.conf.", p)
 		}
 	}
 	switch {
 	case !f.NetworkManager:
 		add("NetworkManager is not running.")
 	case f.NMMode != "default" || f.NMRcManager != "symlink":
-		add("NetworkManager's DNS setup is not the usual one (mode %q, rc-manager %q; expected \"default\" and \"symlink\").",
+		add("NetworkManager's DNS setup is not the usual one. Its mode is %q and its rc-manager is %q, not \"default\" and \"symlink\".",
 			f.NMMode, f.NMRcManager)
 	}
 	if f.Networkd {
@@ -151,7 +151,7 @@ func Check(f Facts) Verdict {
 	case StateInProgress, StateUndoFailed:
 		add("An earlier switch did not finish. Undo it first: pkexec %s undo", HelperPath)
 	case StateEnabled:
-		add("DNS support was switched on before; undo that first: pkexec %s undo", HelperPath)
+		add("DNS support was switched on before. Undo that first: pkexec %s undo", HelperPath)
 	}
 
 	if len(problems) == 0 {

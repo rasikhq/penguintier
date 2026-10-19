@@ -45,7 +45,7 @@ export default function About() {
             <a href={`https://${REPO_LABEL}`} onClick={openRepo}>{REPO_LABEL}</a>
             <footer>
                 <p>MIT License · © 2026 Rasikh Q.</p>
-                <p>Unofficial; not affiliated with ZeroTier, Inc.</p>
+                <p>Unofficial app. Not affiliated with ZeroTier, Inc.</p>
             </footer>
         </main>
     )

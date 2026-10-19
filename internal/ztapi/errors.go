@@ -99,10 +99,10 @@ type InsecureTokenFileError struct {
 
 func (e *InsecureTokenFileError) Error() string {
 	if e.OwnerUID != e.WantUID {
-		return fmt.Sprintf("refusing to use token file %s: it belongs to user ID %d, not to you (user ID %d)",
+		return fmt.Sprintf("refusing to use token file %s because it belongs to user ID %d, not to you (user ID %d)",
 			e.Path, e.OwnerUID, e.WantUID)
 	}
-	return fmt.Sprintf("refusing to use token file %s: other users can read or change it (mode %04o); fix it with: chmod 600 %s",
+	return fmt.Sprintf("refusing to use token file %s because other users can read or change it (mode %04o). Fix it with: chmod 600 %s",
 		e.Path, e.Mode.Perm(), e.Path)
 }
 

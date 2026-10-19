@@ -571,7 +571,7 @@ func (c *controller) watchClicks(key string, clicked <-chan struct{}) {
 				select {
 				case queue <- key:
 				default:
-					slog.Warn("too many clicks waiting; dropped one", "item", key)
+					slog.Warn("too many clicks waiting, so one was dropped", "item", key)
 				}
 			case <-stop:
 				return

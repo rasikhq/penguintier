@@ -164,7 +164,8 @@ prints a command that makes the copy by hand.
 On Linux, the ZeroTier service does not apply a network's DNS settings.
 The
 .B penguintier\-dnsd
-system service, installed with the package, does: for each network with
+system service, installed with the package, does it instead.
+For each network with
 \(lqAllow DNS Configuration\(rq on, it tells
 .BR systemd\-resolved (8)
 to send queries for the network's DNS domain to the network's DNS servers,
@@ -317,7 +318,7 @@ resolvectl status
 .PP
 https://github.com/rasikhq/penguintier
 .SH NOTES
-Penguintier is unofficial and not affiliated with ZeroTier, Inc.
+Penguintier is an unofficial app and is not affiliated with ZeroTier, Inc.
 ZeroTier is a trademark of ZeroTier, Inc.
 .SH BUGS
 Report bugs at https://github.com/rasikhq/penguintier/issues and attach

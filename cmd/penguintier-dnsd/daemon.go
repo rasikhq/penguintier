@@ -153,7 +153,7 @@ func (d *daemon) check(parent context.Context) error {
 
 	networks, err := d.zt.Networks(ctx)
 	if errors.Is(err, ztapi.ErrUnauthorized) {
-		return fmt.Errorf("%w: %w; exiting so systemd restarts us with a fresh token", errFatal, err)
+		return fmt.Errorf("%w: %w (exiting, so systemd restarts it with a fresh token)", errFatal, err)
 	}
 	if err != nil {
 		// Service down or restarting: change nothing until it is back.
@@ -206,7 +206,7 @@ func (d *daemon) resolvedRunning(ctx context.Context) bool {
 	}
 	switch {
 	case !up && !d.resolvedMissing:
-		d.log.Infof("systemd-resolved is not running; waiting for it (ZeroTier DNS settings are not applied until it starts)")
+		d.log.Infof("systemd-resolved is not running, so ZeroTier DNS settings are not applied until it starts")
 		d.resolvedMissing = true
 	case up && d.resolvedMissing:
 		d.log.Infof("systemd-resolved is running")
@@ -265,7 +265,7 @@ func (d *daemon) execute(ctx context.Context, ops []Op, problems map[string]stri
 	// Log "leaving alone" once, when it starts.
 	for link := range leftAlone {
 		if !d.leftAlone[link] {
-			d.log.Infof("%s already has DNS settings that penguintier-dnsd did not make; leaving them alone", link)
+			d.log.Infof("%s already has DNS settings that penguintier-dnsd did not make, so it is leaving them alone", link)
 		}
 	}
 	d.leftAlone = leftAlone
@@ -337,7 +337,7 @@ func (d *daemon) revertAll() {
 		// Nothing to revert right now. Keep the state file: if resolved
 		// kept our settings (it saves them under /run across its own
 		// restarts), the next run still knows they are ours.
-		d.log.Infof("systemd-resolved is not running; nothing to revert")
+		d.log.Infof("systemd-resolved is not running, so there is nothing to revert")
 		return
 	}
 	d.log.Infof("stopping: reverting the DNS settings of %d link(s)", len(d.applied))

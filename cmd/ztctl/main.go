@@ -218,7 +218,7 @@ func fail(stderr io.Writer, err error) int {
 		fmt.Fprintln(stderr, "  make dev-install-helper")
 		fmt.Fprintln(stderr, "  "+copyTokenCommand)
 	case errors.Is(err, ztapi.ErrUnauthorized):
-		fmt.Fprintln(stderr, "hint: the token is out of date; copy it again with:")
+		fmt.Fprintln(stderr, "hint: the token is out of date, so copy it again with:")
 		fmt.Fprintln(stderr, "  "+copyTokenCommand)
 	case errors.Is(err, ztapi.ErrServiceDown):
 		fmt.Fprintln(stderr, "hint: start the service with: sudo systemctl start zerotier-one")

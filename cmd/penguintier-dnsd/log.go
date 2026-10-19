@@ -45,7 +45,7 @@ func newLogger(w io.Writer, levelName string, journal bool) *logger {
 	case "error":
 		l.min = levelError
 	default:
-		l.Warnf("unknown PENGUINTIER_LOG level %q; using info", levelName)
+		l.Warnf("unknown PENGUINTIER_LOG level %q (using info)", levelName)
 	}
 	return l
 }

@@ -100,7 +100,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		// Without the state we can't tell our links from others'. Start
 		// fresh: links we set before now look like someone else's and are
 		// left alone, which is the safe side.
-		log.Warnf("%v; starting with an empty state", err)
+		log.Warnf("%v (starting with an empty state)", err)
 		applied = map[string]Config{}
 	}
 

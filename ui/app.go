@@ -19,7 +19,7 @@ var networkIDPattern = regexp.MustCompile(`^[0-9a-f]{16}$`)
 
 // errBadNetworkID is returned for anything that isn't 16 hex digits.
 // errors.New makes a fixed error value that callers can compare against.
-var errBadNetworkID = errors.New("a network ID is 16 characters: 0-9 and a-f")
+var errBadNetworkID = errors.New("a network ID has 16 characters, each 0-9 or a-f")
 
 // App is shared between Go and the React frontend. Its exported methods
 // (capitalized names) are "bound": Wails generates a TypeScript function

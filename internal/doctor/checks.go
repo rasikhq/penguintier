@@ -136,15 +136,15 @@ func authCheck(f Facts) Check {
 	c := Check{ID: "zerotier.auth", Title: "API access"}
 	switch {
 	case !serviceUp(f):
-		c.Status, c.Summary = Skip, "not checked: the service is not running"
+		c.Status, c.Summary = Skip, "not checked, because the service is not running"
 	case f.TokenErr != nil || errors.Is(f.NodeErr, ztapi.ErrTokenMissing):
-		c.Status, c.Summary = Skip, "not checked: no usable token"
+		c.Status, c.Summary = Skip, "not checked, because there is no usable token"
 	case f.NodeErr == nil:
 		online := "online"
 		if !f.Node.Online {
 			online = "offline"
 		}
-		c.Status, c.Summary = OK, fmt.Sprintf("the token works: node %s, %s", f.Node.Address, online)
+		c.Status, c.Summary = OK, fmt.Sprintf("the token works (node %s, %s)", f.Node.Address, online)
 		c.Details = map[string]any{"address": f.Node.Address, "version": f.Node.Version, "online": f.Node.Online}
 	case errors.Is(f.NodeErr, ztapi.ErrUnauthorized):
 		c.Status, c.Summary = Fail, "ZeroTier rejected the token (a reinstall makes a new one)"
@@ -165,16 +165,17 @@ func trayCheck(f Facts) Check {
 	}
 	switch {
 	case f.TrayErr != nil:
-		c.Status, c.Summary = Skip, "not checked: "+f.TrayErr.Error()+" (run doctor inside your desktop session)"
+		c.Status, c.Summary = Skip, "not checked ("+f.TrayErr.Error()+")"
+		c.Fix = "Run doctor inside your desktop session."
 	case f.Tray.Ready():
 		host := f.Tray.Program
 		if host == "" {
 			host = "a tray host"
 		}
-		c.Status, c.Summary = OK, fmt.Sprintf("%s: %s shows tray icons", f.Desktop, host)
+		c.Status, c.Summary = OK, fmt.Sprintf("%s shows tray icons on %s", host, f.Desktop)
 	default:
 		advice := watcher.AdviceFor(f.Desktop, f.Extension)
-		c.Status, c.Summary = Fail, fmt.Sprintf("%s: no tray host, so Penguintier's icon is invisible", f.Desktop)
+		c.Status, c.Summary = Fail, fmt.Sprintf("no tray host on %s, so Penguintier's icon is invisible", f.Desktop)
 		c.Fix = advice.Text()
 	}
 	return c
@@ -183,7 +184,7 @@ func trayCheck(f Facts) Check {
 func notifyCheck(f Facts) Check {
 	c := Check{ID: "desktop.notifications", Title: "Notifications"}
 	if f.NotifyErr != nil {
-		c.Status, c.Summary = Warn, "no notification service: Penguintier's messages only go to its log"
+		c.Status, c.Summary = Warn, "no notification service, so Penguintier's messages only go to its log"
 		c.Details = map[string]any{"error": f.NotifyErr.Error()}
 		return c
 	}
@@ -200,7 +201,7 @@ func clipboardCheck(f Facts) Check {
 		}
 	}
 	if len(usable) == 0 {
-		c.Status, c.Summary = Warn, "no clipboard tool for this session: copied text is shown in a notification instead"
+		c.Status, c.Summary = Warn, "no clipboard tool for this session, so copied text is shown in a notification instead"
 		c.Fix = "Install wl-clipboard (Wayland) or xclip (X11)."
 		return c
 	}
@@ -217,7 +218,7 @@ func polkitCheck(f Facts) Check {
 	switch {
 	case f.Pkexec == "":
 		c.Status, c.Summary = Warn, "pkexec is not installed, so “Authorize Penguintier…” can't work"
-		c.Fix = "Install pkexec (Debian/Ubuntu: the pkexec package; Fedora: polkit). " + byHand
+		c.Fix = "Install pkexec. It comes in the pkexec package on Debian and Ubuntu, and in polkit on Fedora. " + byHand
 	case !f.PkexecSetuid:
 		c.Status, c.Summary = Warn, f.Pkexec+" is not setuid root, so it can't ask for a password"
 		c.Fix = "Reinstall pkexec. " + byHand
@@ -270,8 +271,8 @@ func resolvedCheck(f Facts) Check {
 		return c
 	}
 	// Penguintier won't switch this setup itself: say why, and how by hand.
-	c.Fix = "Switching the computer's DNS to systemd-resolved by hand changes how every program looks up names; " +
-		"keep a copy of /etc/resolv.conf and /etc/nsswitch.conf first."
+	c.Fix = "Switching the computer's DNS to systemd-resolved by hand changes how every program looks up names, " +
+		"so keep a copy of /etc/resolv.conf and /etc/nsswitch.conf first."
 	if f.SetupVerdict != nil {
 		c.Fix = f.SetupVerdict.Text()
 	}
@@ -292,13 +293,13 @@ func daemonCheck(f Facts) Check {
 		c.Status, c.Summary = OK, "penguintier-dnsd.service is active"
 	case countDNS(f)[dnsstatus.DaemonNotRunning] > 0:
 		c.Status, c.Summary = Fail, "penguintier-dnsd.service is "+f.DaemonUnit.ActiveState+", so ZeroTier DNS is not applied"
-		c.Fix = "Start it: sudo systemctl enable --now penguintier-dnsd.path penguintier-dnsd.service\nIts log: journalctl -u penguintier-dnsd"
+		c.Fix = "Start it: sudo systemctl enable --now penguintier-dnsd.path penguintier-dnsd.service\nRead its log: journalctl -u penguintier-dnsd"
 	case f.DaemonUnit.ActiveState == "failed":
 		c.Status, c.Summary = Warn, "penguintier-dnsd.service failed"
 		c.Fix = "See why: journalctl -u penguintier-dnsd\nRestart it: sudo systemctl restart penguintier-dnsd.service"
 	default:
 		c.Status = Info
-		c.Summary = fmt.Sprintf("penguintier-dnsd.service is %s; penguintier-dnsd.path is %s (%s)",
+		c.Summary = fmt.Sprintf("penguintier-dnsd.service is %s, and penguintier-dnsd.path is %s (%s)",
 			f.DaemonUnit.ActiveState, f.PathUnit.ActiveState, f.PathUnit.SubState)
 	}
 	return c
@@ -355,14 +356,14 @@ func setupCheck(f Facts) Check {
 	switch m.State {
 	case dnssetup.StateInProgress, dnssetup.StateUndoFailed:
 		c.Status = Fail
-		c.Summary = "the switch to systemd-resolved of " + when + " did not finish"
+		c.Summary = "the switch to systemd-resolved started on " + when + " did not finish"
 		c.Fix = "Put the previous DNS files back: " + undo
 	case dnssetup.StateEnabled:
 		c.Status = Info
-		c.Summary = "switched to systemd-resolved on " + when + "; the previous files are in " + dnssetup.BackupDir
+		c.Summary = "switched to systemd-resolved on " + when + ", with the previous files kept in " + dnssetup.BackupDir
 		c.Fix = "To switch back: " + undo
 	case dnssetup.StateRolledBack:
-		c.Status, c.Summary = Info, "the switch of "+when+" was undone automatically: "+m.Message
+		c.Status, c.Summary = Info, "the switch on "+when+" was undone automatically because "+m.Message
 	default:
 		c.Status, c.Summary = Info, "switched back on "+when
 	}

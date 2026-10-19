@@ -395,7 +395,7 @@ func TestHelperOutcome(t *testing.T) {
 		{name: "not authorized", code: 127, wantInMsg: "Nothing was changed"},
 		{name: "rolled back", code: 1, stdout: result("rolled-back", "Everything was put back as it was"), wantInMsg: "put back as it was"},
 		{name: "refused", code: 3, stdout: result("refused", "changed nothing"), wantInMsg: "changed nothing"},
-		{name: "undo failed", code: 4, stdout: result("failed", "To finish by hand: sudo dpkg --purge"), wantInMsg: "To finish by hand"},
+		{name: "undo failed", code: 4, stdout: result("failed", "To finish by hand, run “sudo dpkg --purge"), wantInMsg: "To finish by hand"},
 		{name: "killed", code: 137, stdout: "progress\n", wantInMsg: "stopped unexpectedly (exit code 137)"},
 	}
 	for _, tt := range tests {

@@ -111,7 +111,8 @@ nfpms:
       Penguintier puts your ZeroTier networks in the system tray, with the same
       menu as the official ZeroTier app on macOS and Windows. It also makes
       ZeroTier's "Allow DNS Configuration" option work on Linux, through
-      systemd-resolved. Not affiliated with ZeroTier, Inc.
+      systemd-resolved. Penguintier is an unofficial app and is not
+      affiliated with ZeroTier, Inc.
     mtime: "{{ .CommitDate }}"
 
     # Package names differ between Debian/Ubuntu and Fedora, so the hard

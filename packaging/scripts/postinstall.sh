@@ -61,7 +61,7 @@ fi
 # the user already exists changes nothing.
 if command -v systemd-sysusers >/dev/null 2>&1; then
 	systemd-sysusers penguintier.conf ||
-		echo "penguintier: systemd-sysusers failed; penguintier-dnsd needs the penguintier-dns user" >&2
+		echo "penguintier: systemd-sysusers failed, but penguintier-dnsd needs the penguintier-dns user" >&2
 fi
 
 # No systemctl (some minimal containers): nothing else to set up.

@@ -16,7 +16,7 @@ func TestLogger(t *testing.T) {
 		{"journal, info level", "", true, "<6>info 1\n<4>warn 2\n<3>error 3\n"},
 		{"journal, debug level", "debug", true, "<7>debug 0\n<6>info 1\n<4>warn 2\n<3>error 3\n"},
 		{"journal, warn level", "WARN", true, "<4>warn 2\n<3>error 3\n"},
-		{"unknown level falls back to info", "loud", true, "<4>unknown PENGUINTIER_LOG level \"loud\"; using info\n<6>info 1\n<4>warn 2\n<3>error 3\n"},
+		{"unknown level falls back to info", "loud", true, "<4>unknown PENGUINTIER_LOG level \"loud\" (using info)\n<6>info 1\n<4>warn 2\n<3>error 3\n"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

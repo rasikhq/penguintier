@@ -32,7 +32,7 @@
       by handing each network's DNS settings to systemd-resolved.
     </p>
     <p>
-      Penguintier is unofficial and not affiliated with ZeroTier, Inc.
+      Penguintier is an unofficial app and is not affiliated with ZeroTier, Inc.
       It needs the ZeroTier service (zerotier-one) to be installed.
     </p>
   </description>
@@ -42,7 +42,7 @@
   <!-- Software centers download these when they show the app. -->
   <screenshots>
     <screenshot type="default">
-      <caption>The tray menu: your address, joining networks, one submenu per network</caption>
+      <caption>The tray menu with your address, Join New Network and one submenu per network</caption>
       <image>https://raw.githubusercontent.com/rasikhq/penguintier/master/docs/screenshots/tray-menu.png</image>
     </screenshot>
     <screenshot>

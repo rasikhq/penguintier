@@ -236,8 +236,8 @@ func (c *controller) handleEnableDNSResult(ctx context.Context, err error) {
 		c.notify(ctx, notify.Notification{
 			Summary: "DNS support is on",
 			Body: "This computer now uses systemd-resolved, and names resolve. ZeroTier networks with " +
-				"“Allow DNS Configuration” get their DNS settings; each network's DNS row shows the status. " +
-				"Your previous files are backed up; “penguintier doctor” shows how to switch back.",
+				"“Allow DNS Configuration” now get their DNS settings, and each network's DNS row shows the status. " +
+				"Your previous files are backed up, and “penguintier doctor” shows how to switch back.",
 		})
 	}
 }
@@ -257,8 +257,8 @@ func (c *controller) about(ctx context.Context) {
 		slog.Warn("cannot open the About window", "err", err)
 		c.notify(ctx, notify.Notification{
 			Summary: "Penguintier " + c.version,
-			Body: "Unofficial ZeroTier tray app for Linux. MIT license.\n" +
-				"Not affiliated with ZeroTier, Inc.\nhttps://github.com/rasikhq/penguintier",
+			Body: "A tray app for ZeroTier on Linux. MIT license.\n" +
+				"Unofficial app. Not affiliated with ZeroTier, Inc.\nhttps://github.com/rasikhq/penguintier",
 		})
 	}
 }

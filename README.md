@@ -266,8 +266,8 @@ Penguintier doctor
   info  Penguintier       0.1.0
   ok    ZeroTier service  ZeroTier 1.16.2, running at http://127.0.0.1:9993
   ok    API token         /home/you/.zeroTierOneAuthToken (yours, mode 0600)
-  ok    API access        the token works: node a1b2c3d4e5, online
-  ok    Tray host         GNOME (wayland): gnome-shell shows tray icons
+  ok    API access        the token works (node a1b2c3d4e5, online)
+  ok    Tray host         gnome-shell shows tray icons on GNOME (wayland)
   ok    Notifications     gnome-shell 48.7
   ok    Clipboard         wl-copy, xclip
   ok    Authorizing       pkexec, agent gnome-shell, helper /usr/libexec/penguintier/penguintier-token-helper
@@ -375,5 +375,5 @@ Penguintier is released under the [MIT license](LICENSE). The packages also
 install `/usr/share/doc/penguintier/THIRD_PARTY_LICENSES`, which holds the
 licenses of the libraries compiled into it.
 
-Penguintier is not affiliated with ZeroTier, Inc. ZeroTier is a trademark of
-ZeroTier, Inc.
+Penguintier is an unofficial app and is not affiliated with ZeroTier, Inc.
+ZeroTier is a trademark of ZeroTier, Inc.

@@ -96,7 +96,7 @@ func helperOutcome(code int, stdout string) error {
 	case ok && res.Message != "":
 		return errors.New(res.Message)
 	default:
-		return fmt.Errorf("the DNS switch stopped unexpectedly (exit code %d). Check with “penguintier doctor”; to undo it: pkexec %s undo",
+		return fmt.Errorf("the DNS switch stopped unexpectedly (exit code %d). Check it with “penguintier doctor”, or undo it with: pkexec %s undo",
 			code, dnssetup.HelperPath)
 	}
 }

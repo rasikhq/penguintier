@@ -93,7 +93,7 @@ func (s Switch) Enable(ctx context.Context, facts Facts) Result {
 	}
 	m.Installed = []string{PackageResolved}
 	if err := s.Store.Save(m); err != nil {
-		return s.rollback(ctx, m, "could not save the backup's manifest: "+err.Error())
+		return s.rollback(ctx, m, "the backup's manifest could not be saved: "+err.Error())
 	}
 
 	s.log("Installing systemd-resolved")
@@ -119,7 +119,7 @@ func (s Switch) Enable(ctx context.Context, facts Facts) Result {
 		}
 		// The Debian race (see the package comment): resolved started
 		// before D-Bus knew its user. A restart fixes it.
-		s.log("systemd-resolved runs without its bus name; restarting it")
+		s.log("Restarting systemd-resolved, which runs without its bus name")
 		if err := s.System.RestartResolved(ctx); err != nil {
 			return s.rollback(ctx, m, "restarting systemd-resolved failed: "+err.Error())
 		}
@@ -134,7 +134,7 @@ func (s Switch) Enable(ctx context.Context, facts Facts) Result {
 		if ctx.Err() != nil {
 			return s.rollback(ctx, m, "the switch was interrupted")
 		}
-		s.log("Names don't resolve yet; asking NetworkManager to send its DNS servers again")
+		s.log("Asking NetworkManager to send its DNS servers again, because names don't resolve yet")
 		if err := s.System.ReloadNetworkManager(ctx, "dns-full"); err != nil {
 			s.log("nmcli failed: " + err.Error())
 		}
@@ -152,8 +152,8 @@ func (s Switch) Enable(ctx context.Context, facts Facts) Result {
 	}
 	return Result{
 		Outcome: OutcomeEnabled,
-		Message: "DNS support is on: systemd-resolved runs and names resolve. Your previous files are kept in " +
-			BackupDir + "; to switch back: pkexec " + HelperPath + " undo",
+		Message: "DNS support is on, and names resolve through systemd-resolved. Your previous files are kept in " +
+			BackupDir + ". To switch back, run: pkexec " + HelperPath + " undo",
 		Backup: BackupDir,
 	}
 }
@@ -188,11 +188,11 @@ func (s Switch) rollback(ctx context.Context, m *Manifest, reason string) Result
 	s.log("Undoing the switch: " + reason)
 	if err := s.undo(ctx, m); err != nil {
 		m.State = StateUndoFailed
-		m.Message = reason + "; undoing failed: " + err.Error()
+		m.Message = reason + ". Undoing failed: " + err.Error()
 		_ = s.Store.Save(m) // the result below carries the error either way
 		return Result{
 			Outcome: OutcomeFailed,
-			Message: "DNS support was not enabled: " + reason + ". Putting things back also failed: " + err.Error() + ". " + manualSteps(),
+			Message: "DNS support was not enabled because " + reason + ". Putting things back also failed: " + err.Error() + ". " + manualSteps(),
 			Backup:  BackupDir,
 		}
 	}
@@ -201,7 +201,7 @@ func (s Switch) rollback(ctx context.Context, m *Manifest, reason string) Result
 	_ = s.Store.Save(m) // the rollback worked; the record is a convenience
 	return Result{
 		Outcome: OutcomeRolledBack,
-		Message: "DNS support was not enabled: " + reason + ". Everything was put back as it was, and names resolve again.",
+		Message: "DNS support was not enabled because " + reason + ". Everything was put back as it was, and names resolve again.",
 		Backup:  BackupDir,
 	}
 }
@@ -291,6 +291,6 @@ func fileList() string {
 
 // manualSteps is how to finish an undo by hand.
 func manualSteps() string {
-	return "To finish by hand: sudo dpkg --purge systemd-resolved; then copy the files from " + BackupDir +
-		" back (for example: sudo cp " + BackupDir + "/resolv.conf /etc/resolv.conf); then: sudo nmcli general reload dns-rc"
+	return "To finish by hand, run “sudo dpkg --purge systemd-resolved”, copy the files in " + BackupDir +
+		" back (for example with “sudo cp " + BackupDir + "/resolv.conf /etc/resolv.conf”), and then run “sudo nmcli general reload dns-rc”."
 }

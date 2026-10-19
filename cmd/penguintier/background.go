@@ -52,12 +52,12 @@ var startInBackground = func(stdout, stderr io.Writer) int {
 		return 1
 	}
 	args := []string{exe, "--foreground"}
-	logHint := "Its log: journalctl --user -t " + logIdentifier + " -f"
+	logHint := "Watch its log: journalctl --user -t " + logIdentifier + " -f"
 	// systemd-cat runs a program with its output going to the journal.
 	if cat, err := exec.LookPath("systemd-cat"); err == nil {
 		args = append([]string{cat, "--identifier=" + logIdentifier, "--"}, args...)
 	} else {
-		logHint = "Its log is not kept; run “penguintier --foreground” to see it."
+		logHint = "Its log is not kept. Run “penguintier --foreground” to see it."
 	}
 
 	cmd := exec.Command(args[0], args[1:]...) //nolint:gosec // our own binary, maybe through systemd-cat

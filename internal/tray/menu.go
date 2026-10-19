@@ -282,7 +282,7 @@ func networkNode(n NetworkView) Node {
 		separator(key+"/sep/disconnect"),
 		Node{
 			Key: key + "/disconnect", Label: "Disconnect",
-			Tooltip: "Leave the network; its settings stay under Saved Networks",
+			Tooltip: "Leave the network and keep its settings under Saved Networks",
 			Action:  Action{Kind: ActDisconnect, Network: n.ID},
 		},
 	)
