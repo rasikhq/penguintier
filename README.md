@@ -15,11 +15,22 @@
 > the ZeroTier service you already have installed; it is not a replacement
 > for it.
 
-<p align="center">
-  <img src="docs/screenshots/tray-menu.png" width="270" align="top" alt="Penguintier's tray menu on GNOME: your address, Join New Network, two networks, Start at Login, About, Quit">
-  &nbsp;
-  <img src="docs/screenshots/tray-network.png" width="331" align="top" alt="A network's submenu: Network ID, the four Allow check boxes, status, interface, DNS domain and DNS row, addresses and routes">
-</p>
+<div align="center">
+<table>
+  <tr>
+    <td align="center" valign="top">
+      <a href="docs/screenshots/tray-menu.png"><img src="docs/screenshots/tray-menu.png" height="320" alt="Penguintier's tray menu on GNOME: your address, Join New Network, two networks, Start at Login, About, Quit"></a>
+    </td>
+    <td align="center" valign="top">
+      <a href="docs/screenshots/tray-network.png"><img src="docs/screenshots/tray-network.png" height="480" alt="A network's submenu: Network ID, the four Allow check boxes, status, interface, DNS domain and DNS row, addresses and routes"></a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The tray menu</sub></td>
+    <td align="center"><sub>A network's submenu (click to enlarge)</sub></td>
+  </tr>
+</table>
+</div>
 
 ## What it does
 
