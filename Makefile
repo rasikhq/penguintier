@@ -12,6 +12,10 @@ GOBIN := $(or $(shell $(GO) env GOBIN),$(shell $(GO) env GOPATH)/bin)
 GOLANGCI_LINT_VERSION := v2.15.0
 GOLANGCI_LINT ?= $(GOBIN)/golangci-lint
 WAILS ?= $(GOBIN)/wails
+# Keep in sync with the goreleaser version in .github/workflows/package.yml
+# and release.yml.
+GORELEASER_VERSION := v2.18.3
+GORELEASER ?= $(GOBIN)/goreleaser
 
 # The Go version pinned by the toolchain line in go.mod, e.g. go1.27.2.
 GO_TOOLCHAIN := $(shell $(GO) env GOVERSION)
@@ -37,12 +41,14 @@ MOCK_ARGS ?=
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
-tools: ## Install the pinned dev tools (golangci-lint, wails) into ~/go/bin
+tools: ## Install the pinned dev tools (golangci-lint, wails, goreleaser) into ~/go/bin
 	# Build the tools with the project's Go: golangci-lint refuses to check
 	# code that targets a newer Go than the one it was built with.
 	GOTOOLCHAIN=$(GO_TOOLCHAIN) $(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	# The Wails CLI must match the Wails library version in ui/go.mod.
 	cd ui && GOTOOLCHAIN=$(GO_TOOLCHAIN) $(GO) install github.com/wailsapp/wails/v2/cmd/wails@$$($(GO) list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)
+	# GoReleaser builds the .deb and .rpm packages (make package).
+	GOTOOLCHAIN=$(GO_TOOLCHAIN) $(GO) install github.com/goreleaser/goreleaser/v2@$(GORELEASER_VERSION)
 
 build: ## Build all Go commands into bin/ (static, no cgo)
 	CGO_ENABLED=0 $(GO) build -trimpath -ldflags '$(LDFLAGS)' -o bin/ ./cmd/...
@@ -98,8 +104,14 @@ live-test: ## Run the live tests against the real local ZeroTier service
 dev-install-helper: ## TODO(P1): install the token helper + polkit policy for local testing
 	@echo "TODO(P1): install penguintier-token-helper and its polkit policy"; exit 1
 
-package: ## TODO(P6): build .deb and .rpm packages into dist/ with GoReleaser
-	@echo "TODO(P6): goreleaser release --snapshot --clean"; exit 1
+package: ## Build the .deb and .rpm packages into dist/ (GoReleaser snapshot)
+	@test -x $(GORELEASER) || { echo "goreleaser not found; run 'make tools'"; exit 1; }
+	@test -x $(WAILS) || { echo "wails not found; run 'make tools'"; exit 1; }
+	# GoReleaser first runs `make ui-build` (see .goreleaser.yaml), then
+	# builds the Go programs and packs everything. --snapshot: version from
+	# git, nothing is published. --clean: empty dist/ first.
+	$(GORELEASER) release --snapshot --clean
+	@ls -l dist/*.deb dist/*.rpm
 
 clean: ## Delete build output
 	rm -rf bin/ dist/ ui/build/bin/
