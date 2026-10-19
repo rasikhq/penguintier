@@ -1,0 +1,29 @@
+{
+  "allowDNS": false,
+  "allowDefault": false,
+  "allowGlobal": false,
+  "allowManaged": true,
+  "assignedAddresses": [],
+  "authenticationExpiryTime": 1792432800000,
+  "authenticationURL": "https://sso.example.com/authorize?nwid=c0ffee1234000003&state=abc123",
+  "bridge": false,
+  "broadcastEnabled": true,
+  "dhcp": false,
+  "dns": {
+    "domain": "",
+    "servers": []
+  },
+  "id": "c0ffee1234000003",
+  "mac": "02:12:34:00:00:03",
+  "mtu": 2800,
+  "multicastSubscriptions": [],
+  "name": "corp-sso",
+  "netconfRevision": 2,
+  "nwid": "c0ffee1234000003",
+  "portDeviceName": "ztc0ffee03",
+  "portError": 0,
+  "routes": [],
+  "ssoEnabled": true,
+  "status": "AUTHENTICATION_REQUIRED",
+  "type": "PRIVATE"
+}

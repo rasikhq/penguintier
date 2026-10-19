@@ -1,10 +1,31 @@
 // Package ztapi talks to the ZeroTier One service's local HTTP API
 // (http://127.0.0.1:9993 by default).
 //
-// It will hold the API models (Status, Network, NetworkID, ...), token and
-// port discovery, a small net/http client with typed errors, and the
-// saved-networks store.
+// What is in here:
 //
-// This is a P0 stub with no code yet. Phase P1 owns this package.
-// See docs/architecture.md.
+//   - models.go: the JSON shapes the service sends (NodeStatus, Network,
+//     Peer, ...), the NetworkID type and the network Status type.
+//   - errors.go: the errors callers can check with errors.Is / errors.As.
+//   - discovery.go: where the API listens (port file, 127.0.0.1 then [::1])
+//     and where the API token is (see "ZeroTier API token" in
+//     docs/architecture.md).
+//   - token.go: the token format, and saving a copy to
+//     ~/.zeroTierOneAuthToken.
+//   - client.go: the HTTP client (Health, Status, Networks, Join, ...).
+//   - saved.go: the saved-networks store, and the one-time import from
+//     ZeroTier's official desktop app.
+//   - atomic.go: writing a file so readers never see half of it.
+//
+// The ztmock subpackage is a fake service for tests and for cmd/zt-mock.
+//
+// A quick example:
+//
+//	c, err := ztapi.Discover()
+//	if err != nil {
+//		return err
+//	}
+//	nets, err := c.Networks(ctx)
+//	if errors.Is(err, ztapi.ErrServiceDown) {
+//		// show "Waiting for ZeroTier system service…"
+//	}
 package ztapi

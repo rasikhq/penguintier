@@ -1,0 +1,51 @@
+{
+  "allowDNS": true,
+  "allowDefault": false,
+  "allowGlobal": true,
+  "allowManaged": true,
+  "assignedAddresses": [
+    "fdc0:ffee:1234:0:499:93a1:b2c3:d4e5/88",
+    "fcaa:bbcc:dda1:b2c3:d4e5::1/40",
+    "2001:db8:42::5/64"
+  ],
+  "bridge": false,
+  "broadcastEnabled": true,
+  "dhcp": false,
+  "dns": {
+    "domain": "v6.example",
+    "servers": [
+      "2001:db8:42::53",
+      "fdc0:ffee:1234:0:499:9300:0:53"
+    ]
+  },
+  "id": "c0ffee1234000004",
+  "mac": "02:12:34:00:00:04",
+  "mtu": 2800,
+  "multicastSubscriptions": [
+    {
+      "adi": 0,
+      "mac": "33:33:00:00:00:01"
+    }
+  ],
+  "name": "ipv6_only",
+  "netconfRevision": 7,
+  "nwid": "c0ffee1234000004",
+  "portDeviceName": "ztc0ffee04",
+  "portError": 0,
+  "routes": [
+    {
+      "flags": 0,
+      "metric": 0,
+      "target": "2001:db8:42::/64",
+      "via": null
+    },
+    {
+      "flags": 0,
+      "metric": 100,
+      "target": "2001:db8:99::/48",
+      "via": "2001:db8:42::1"
+    }
+  ],
+  "status": "OK",
+  "type": "PRIVATE"
+}

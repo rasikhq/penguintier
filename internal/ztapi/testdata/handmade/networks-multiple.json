@@ -1,0 +1,117 @@
+[
+  {
+    "allowDNS": false,
+    "allowDefault": false,
+    "allowGlobal": false,
+    "allowManaged": true,
+    "assignedAddresses": [
+      "172.27.4.20/16"
+    ],
+    "bridge": false,
+    "broadcastEnabled": true,
+    "dhcp": false,
+    "dns": {
+      "domain": "",
+      "servers": []
+    },
+    "id": "c0ffee1234000002",
+    "mac": "02:12:34:00:00:02",
+    "mtu": 2800,
+    "multicastSubscriptions": [
+      {
+        "adi": 0,
+        "mac": "ff:ff:ff:ff:ff:ff"
+      }
+    ],
+    "name": "office",
+    "netconfRevision": 12,
+    "nwid": "c0ffee1234000002",
+    "portDeviceName": "ztc0ffee02",
+    "portError": 0,
+    "routes": [
+      {
+        "flags": 0,
+        "metric": 0,
+        "target": "172.27.0.0/16",
+        "via": null
+      }
+    ],
+    "status": "OK",
+    "type": "PRIVATE",
+    "someFieldFromTheFuture": {
+      "nested": [1, 2, 3]
+    }
+  },
+  {
+    "allowDNS": true,
+    "allowDefault": false,
+    "allowGlobal": false,
+    "allowManaged": true,
+    "assignedAddresses": [
+      "10.147.17.5/24",
+      "fdc0:ffee:1234:0:199:93a1:b2c3:d4e5/88"
+    ],
+    "bridge": false,
+    "broadcastEnabled": true,
+    "dhcp": false,
+    "dns": {
+      "domain": "home.arpa",
+      "servers": [
+        "10.147.17.1"
+      ],
+      "futureDnsField": true
+    },
+    "id": "c0ffee1234000001",
+    "mac": "02:12:34:00:00:01",
+    "mtu": 2800,
+    "multicastSubscriptions": [],
+    "name": "home-lab",
+    "netconfRevision": 3,
+    "nwid": "c0ffee1234000001",
+    "portDeviceName": "ztc0ffee01",
+    "portError": 0,
+    "routes": [
+      {
+        "flags": 0,
+        "metric": 0,
+        "target": "10.147.17.0/24",
+        "via": null
+      },
+      {
+        "flags": 0,
+        "metric": 0,
+        "target": "192.168.100.0/24",
+        "via": "10.147.17.1",
+        "futureRouteField": "x"
+      }
+    ],
+    "status": "OK",
+    "type": "PRIVATE"
+  },
+  {
+    "allowDNS": false,
+    "allowDefault": false,
+    "allowGlobal": false,
+    "allowManaged": true,
+    "assignedAddresses": [],
+    "bridge": false,
+    "broadcastEnabled": false,
+    "dhcp": false,
+    "dns": {
+      "domain": "",
+      "servers": []
+    },
+    "id": "c0ffee123400000c",
+    "mac": "02:12:34:00:00:0c",
+    "mtu": 2800,
+    "multicastSubscriptions": [],
+    "name": "",
+    "netconfRevision": 0,
+    "nwid": "c0ffee123400000c",
+    "portDeviceName": "ztc0ffee0c",
+    "portError": 0,
+    "routes": [],
+    "status": "SOME_FUTURE_STATUS",
+    "type": "PRIVATE"
+  }
+]

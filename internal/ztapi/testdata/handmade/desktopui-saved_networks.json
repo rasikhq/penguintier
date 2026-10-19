@@ -1,0 +1,27 @@
+{
+  "c0ffee1234000001": {
+    "id": "c0ffee1234000001",
+    "name": "home-lab",
+    "settings": "{\"allowDNS\":true,\"allowDefault\":false,\"allowGlobal\":true,\"allowManaged\":false,\"assignedAddresses\":[\"10.147.17.5/24\"],\"id\":\"c0ffee1234000001\",\"name\":\"home-lab\",\"status\":\"OK\",\"type\":\"PRIVATE\"}"
+  },
+  "c0ffee1234000002": {
+    "id": "c0ffee1234000002",
+    "name": "",
+    "settings": "{\"allowDefault\":true,\"name\":\"office-from-settings\"}"
+  },
+  "c0ffee1234000003": {
+    "id": "c0ffee1234000003",
+    "name": "broken-settings",
+    "settings": "this is not JSON"
+  },
+  "C0FFEE1234000004": {
+    "id": "C0FFEE1234000004",
+    "name": "upper-case-id",
+    "settings": {"allowGlobal": true}
+  },
+  "not-a-network-id": {
+    "id": "also-bad",
+    "name": "skipped",
+    "settings": "{}"
+  }
+}
