@@ -16,9 +16,9 @@
 > for it.
 
 <p align="center">
-  <img src="docs/screenshots/tray-menu.png" width="360" alt="Penguintier's tray menu on GNOME: your address, Join New Network, two networks, saved networks">
+  <img src="docs/screenshots/tray-menu.png" width="270" align="top" alt="Penguintier's tray menu on GNOME: your address, Join New Network, two networks, Start at Login, About, Quit">
   &nbsp;
-  <img src="docs/screenshots/tray-network.png" width="420" alt="A network's submenu: Network ID, the four Allow check boxes, status, DNS row, addresses and routes">
+  <img src="docs/screenshots/tray-network.png" width="331" align="top" alt="A network's submenu: Network ID, the four Allow check boxes, status, interface, DNS domain and DNS row, addresses and routes">
 </p>
 
 ## What it does

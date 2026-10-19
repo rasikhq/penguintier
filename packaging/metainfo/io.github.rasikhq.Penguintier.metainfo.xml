@@ -39,6 +39,18 @@
 
   <launchable type="desktop-id">io.github.rasikhq.Penguintier.desktop</launchable>
 
+  <!-- Software centers download these when they show the app. -->
+  <screenshots>
+    <screenshot type="default">
+      <caption>The tray menu: your address, joining networks, one submenu per network</caption>
+      <image>https://raw.githubusercontent.com/rasikhq/penguintier/master/docs/screenshots/tray-menu.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>A network's settings, status, DNS, addresses and routes</caption>
+      <image>https://raw.githubusercontent.com/rasikhq/penguintier/master/docs/screenshots/tray-network.png</image>
+    </screenshot>
+  </screenshots>
+
   <url type="homepage">https://github.com/rasikhq/penguintier</url>
   <url type="bugtracker">https://github.com/rasikhq/penguintier/issues</url>
   <url type="vcs-browser">https://github.com/rasikhq/penguintier</url>
