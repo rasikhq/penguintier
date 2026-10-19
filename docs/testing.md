@@ -415,8 +415,157 @@ never gets a configuration but still joins and leaves.
 
 ## P4: DNS daemon
 
-TODO(P4): planner table tests, fake resolve1 on a private `dbus-daemon`,
-`systemd-analyze security`, `scripts/zt-selftest-network.sh` in a VM.
+### Unit tests (`make test`)
+
+- `cmd/penguintier-dnsd/plan_test.go`: table tests for `Desired` (which
+  networks qualify: allowDNS on, status OK, an interface, a valid domain and
+  at least one valid server; domain and server clean-up) and `Plan` (new
+  link, nothing to do, someone else's link, drift, changed servers or
+  domain, updates that stopped halfway, revert, shutdown, several links).
+  Every `Plan` case is also carried out on a simulated resolved and planned
+  again: the second plan must not write anything.
+- `internal/resolved`: the real D-Bus client against `resolvedtest.Fake`,
+  a fake `org.freedesktop.resolve1` on a private `dbus-daemon` started by
+  the test: set/read round trip, DefaultRoute, error mapping (no such link,
+  link managed by systemd-networkd, polkit refusal, resolved not running),
+  and the `NameOwnerChanged` watcher. Also `IfIndex` against a fake
+  `/sys/class/net`.
+- `cmd/penguintier-dnsd/daemon_test.go`: the daemon's real check loop
+  against zt-mock and the fake resolved: applies once and then writes
+  nothing, re-applies after drift and after the interface is recreated,
+  leaves others' settings alone, recognizes its links after a restart,
+  logs a managed link once, idles without resolved (no API calls), exits on
+  HTTP 401, keeps settings while ZeroTier is down, wakes up when resolved
+  appears and reverts on shutdown, and stops when the bus goes away.
+
+The D-Bus tests need `dbus-daemon` (Debian/Ubuntu package `dbus-daemon`,
+Fedora `dbus-daemon`). Without it they are skipped locally, but fail in CI
+(`$CI` is set), so CI always runs them.
+
+### Units and polkit rule
+
+```
+systemd-analyze verify --man=no packaging/systemd/penguintier-dnsd.service packaging/systemd/penguintier-dnsd.path
+systemd-analyze security --offline=yes packaging/systemd/penguintier-dnsd.service
+```
+
+`verify` only complains that `/usr/libexec/penguintier/penguintier-dnsd`
+is not installed. `security` should say about **1.1 OK** (target: 2 or
+lower). What is left: host network access (it needs the interfaces and
+127.0.0.1:9993), AF_UNIX/AF_INET sockets, and no `PrivateUsers=` (systemd
+can't set up a user namespace inside LXC or rootless containers). The P6
+smoke test runs `verify` on the installed units in four distros.
+
+### Running it by hand
+
+Without root, without systemd and without polkit, the daemon can still
+show its idle path (on a machine without systemd-resolved, such as stock
+Debian) and its start-up checks:
+
+```
+make build
+PENGUINTIER_TOKEN_FILE=~/.zeroTierOneAuthToken RUNTIME_DIRECTORY=$(mktemp -d) bin/penguintier-dnsd
+```
+
+It logs `systemd-resolved is not running; waiting for it` once and nothing
+more; Ctrl+C stops it. Set `PENGUINTIER_LOG=debug` for more. With
+systemd-resolved running it would try to apply settings, which needs the
+polkit rule for your user, so test that part with the package as below.
+
+### End-to-end test (VM or systemd container)
+
+Do this in a VM (Ubuntu 24.04 is the main target) or a systemd container,
+not on your desktop: it installs packages, joins a network and changes DNS
+settings.
+
+1. Install ZeroTier One (<https://www.zerotier.com/download/>),
+   systemd-resolved, the test tools and the package (`make package`
+   first):
+
+   ```
+   sudo apt install systemd-resolved dnsmasq-base jq curl
+   sudo apt install ./dist/penguintier_*_amd64.deb
+   systemctl status penguintier-dnsd.path penguintier-dnsd.service   # both active
+   journalctl -u penguintier-dnsd                                     # "ZeroTier API at ..."
+   ```
+
+2. Make the test network. On a node with a network controller this needs
+   no account; otherwise the script prints the steps for my.zerotier.com:
+
+   ```
+   scripts/zt-selftest-network.sh          # prints the network ID and interface
+   ```
+
+3. Start a DNS server for `pt.test` on the node's ZeroTier IP, then switch
+   Allow DNS on:
+
+   ```
+   sudo dnsmasq --no-resolv --no-hosts --bind-interfaces --listen-address=10.199.47.1 --address=/host.pt.test/10.199.47.1
+   go run ./cmd/ztctl set <network-id> allowDNS=true
+   ```
+
+4. Within 5 seconds:
+
+   ```
+   resolvectl status <zt-interface>   # DNS Servers: 10.199.47.1, DNS Domain: ~pt.test, Default Route: no
+   resolvectl query host.pt.test      # 10.199.47.1 -- link: <zt-interface>
+   resolvectl query example.com       # still answered through your normal DNS
+   journalctl -u penguintier-dnsd     # "DNS queries for pt.test now go to its servers"
+   ```
+
+5. Drift and restarts:
+   - `sudo resolvectl revert <zt-interface>`: set again within 5 s.
+   - `sudo systemctl restart systemd-resolved`: resolved keeps the
+     settings itself (it saves them under `/run`), so the daemon writes
+     nothing. With `sudo systemctl stop systemd-resolved; sudo rm -r
+     /run/systemd/resolve/netif; sudo systemctl start systemd-resolved` it
+     re-applies about 0.3 s after resolved is back.
+   - `sudo systemctl kill -s KILL penguintier-dnsd`: systemd restarts it;
+     the log says "1 link(s) applied before" and nothing is rewritten.
+   - `go run ./cmd/ztctl set <network-id> allowDNS=false`: "DNS settings
+     reverted"; `true` applies again.
+
+6. Stop: `sudo systemctl stop penguintier-dnsd.path penguintier-dnsd.service`
+   logs "stopping: reverting the DNS settings of 1 link(s)", and
+   `resolvectl status <zt-interface>` shows no DNS servers or domains. Stop
+   both units: stopping only the service makes the .path unit start it again
+   at once (systemd warns about that).
+
+7. Without resolved: on Debian without the `systemd-resolved` package the
+   daemon logs `systemd-resolved is not running; waiting for it` once and
+   then stays quiet (it doesn't even call the ZeroTier API).
+   `sudo apt install systemd-resolved` makes it apply within a second, with
+   no restart.
+
+8. Clean up: `scripts/zt-selftest-network.sh down`.
+
+#### In a podman container
+
+A systemd container works for all of this, with a few tweaks. Tested
+with rootless podman on Debian 13, using the host's ZeroTier 1.16.2 binary
+(built for Debian 13, so use a `debian:13` image):
+
+```
+podman run -d --name pt-e2e --systemd=always --privileged -v "$PWD":/src:ro <image with systemd, dbus, polkitd, zerotier-one>
+podman exec pt-e2e mount --make-rshared /
+```
+
+- `--privileged` (still rootless) lets systemd-resolved keep
+  `CAP_SYS_ADMIN` and ZeroTier create its tap device.
+- `mount --make-rshared /`: systemd mounts each service's credentials in a
+  helper process and moves them into `/run/credentials/`. With podman's
+  private mounts the move is invisible to the service, so
+  `LoadCredential=` silently delivers nothing ("API token credential ... is
+  missing"). This only affects containers.
+- Debian images have a `policy-rc.d` that stops package scripts from
+  starting services, so after installing systemd-resolved run
+  `systemctl start systemd-resolved`.
+- Without real ZeroTier (for example on `ubuntu:24.04`, where the Debian 13
+  binary needs a newer OpenSSL), run `zt-mock --listen 127.0.0.1:9993` as
+  a service, put `ztmockztmockztmockztmock` in
+  `/var/lib/zerotier-one/authtoken.secret`, and create the "online"
+  scenario's interface with `ip tuntap add dev zt34000001 mode tap`. The
+  daemon then sets 10.147.17.1 and `~home.arpa` on it.
 
 ## P5: Desktop integration
 
