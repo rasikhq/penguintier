@@ -220,7 +220,7 @@ func (c *Client) Link(ctx context.Context, ifindex int) (LinkDNS, error) {
 
 	// 2. Read all its properties in one call. The reply is a map from
 	// property name to a Variant: a D-Bus value that carries its own type
-	// signature, a bit like `unknown` in TypeScript until you check it.
+	// signature. Its Store method decodes it into a Go variable.
 	var props map[string]dbus.Variant
 	call = c.conn.Object(BusName, path).CallWithContext(ctx, "org.freedesktop.DBus.Properties.GetAll", dbus.FlagNoAutoStart, LinkInterface)
 	if err := call.Store(&props); err != nil {
