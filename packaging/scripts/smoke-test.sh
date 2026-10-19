@@ -12,7 +12,8 @@
 # It installs the package with the distro's package manager (which also
 # pulls in its dependencies), checks every installed file and its mode, runs
 # `penguintier --version` and `systemd-analyze verify`, checks the systemd
-# preset and the system user, then upgrades, removes, reinstalls and purges
+# preset and the system user, checks that the third-party license texts are
+# there, then upgrades, removes, reinstalls and purges
 # it, checking that the scriptlets did the right thing at each step.
 #
 # systemd is not running inside the container, so the scriptlets take their
@@ -124,6 +125,7 @@ expected_files() {
 644 /usr/share/metainfo/io.github.rasikhq.Penguintier.metainfo.xml
 755 /usr/share/doc/penguintier
 644 /usr/share/doc/penguintier/LICENSE
+644 /usr/share/doc/penguintier/THIRD_PARTY_LICENSES
 644 /usr/share/doc/penguintier/README.md
 644 /usr/share/doc/penguintier/CHANGELOG.md
 EOF
@@ -153,6 +155,29 @@ check_files_installed() {
 	done < <(expected_files)
 }
 
+# THIRD_PARTY_LICENSES must carry the license text of everything compiled
+# into the programs (see cmd/licensegen). Spot-check one entry per kind of
+# code, and each license family that the entries use. Keep in sync with the
+# dependencies we really have: systray (Apache-2.0), dbus (BSD-2-Clause), the
+# Go standard library (BSD-3-Clause), Wails and React (MIT).
+check_third_party_licenses() {
+	local file=/usr/share/doc/penguintier/THIRD_PARTY_LICENSES
+	local text
+	# Compare the file's text with grep -F (plain text, not a pattern).
+	for text in \
+		"fyne.io/systray" \
+		"github.com/godbus/dbus/v5" \
+		"github.com/wailsapp/wails/v2" \
+		"Go standard library" \
+		"react-dom" \
+		"Apache License" \
+		"Redistribution and use in source and binary forms" \
+		"Permission is hereby granted, free of charge"; do
+		grep -qF -- "$text" "$file" || fail "$file does not mention '$text'"
+	done
+	echo "ok  $file lists the bundled components and their license texts"
+}
+
 check_files_removed() {
 	local mode path
 	while read -r mode path; do
@@ -173,6 +198,9 @@ install_package
 
 step "Check files and modes"
 check_files_installed
+
+step "Check the third-party license texts"
+check_third_party_licenses
 
 step "Run penguintier --version"
 version_output=$(penguintier --version)

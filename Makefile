@@ -22,6 +22,13 @@ GO_TOOLCHAIN := $(shell $(GO) env GOVERSION)
 
 # Dependency licenses that fit an MIT project (checked by `make licenses`).
 ALLOWED_LICENSES := MIT,BSD-2-Clause,BSD-3-Clause,Apache-2.0,ISC,MPL-2.0
+# go-licenses is built with the project's Go, like the other tools. It also
+# needs GOROOT to find the standard library when it reads the packages.
+GO_LICENSES_VERSION := v2.0.1
+GO_LICENSES = GOTOOLCHAIN=$(GO_TOOLCHAIN) GOROOT=$$($(GO) env GOROOT) \
+	$(GO) run github.com/google/go-licenses/v2@$(GO_LICENSES_VERSION)
+# The license file the packages install (make third-party-licenses).
+THIRD_PARTY_LICENSES := bin/THIRD_PARTY_LICENSES
 
 # Version stamped into binaries (see "Version" in docs/architecture.md).
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
@@ -31,12 +38,16 @@ LDFLAGS := -s -w -X main.version=$(VERSION)
 UI_TAGS := webkit2_41
 # Which window `make ui-dev` opens: join or about.
 UI_SCREEN ?= join
+# The Go build tags of penguintier-ui: ours, plus the two that `wails build`
+# adds. go-licenses must use the same tags to see the same dependencies as
+# the real build (`go version -m ui/build/bin/penguintier-ui` lists them).
+UI_GO_TAGS := desktop,production,$(UI_TAGS)
 
 # Extra arguments for `make mock`, e.g. make mock MOCK_ARGS="--help".
 MOCK_ARGS ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help tools build test lint fmt vuln licenses ui-dev ui-build run mock tray-mock live-test dev-install-helper package clean
+.PHONY: help tools build test lint fmt vuln licenses third-party-licenses ui-dev ui-build run mock tray-mock live-test dev-install-helper package clean
 
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-20s %s\n", $$1, $$2}'
@@ -75,9 +86,31 @@ fmt: ## Format all Go code (gofmt + goimports)
 vuln: ## Check for known vulnerabilities (govulncheck)
 	GOTOOLCHAIN=$(GO_TOOLCHAIN) $(GO) run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
+# --ignore skips Penguintier's own packages (the ui module has no LICENSE
+# file of its own); their dependencies are still checked.
 licenses: ## Check that every dependency has an allowed license
-	GOTOOLCHAIN=$(GO_TOOLCHAIN) GOROOT=$$($(GO) env GOROOT) \
-		$(GO) run github.com/google/go-licenses/v2@v2.0.1 check ./... --allowed_licenses=$(ALLOWED_LICENSES)
+	$(GO_LICENSES) check ./... --allowed_licenses=$(ALLOWED_LICENSES)
+	cd ui && GOFLAGS=-tags=$(UI_GO_TAGS) $(GO_LICENSES) check . \
+		--ignore github.com/rasikhq/penguintier --allowed_licenses=$(ALLOWED_LICENSES)
+
+# The packages must carry the license texts of everything compiled into
+# the programs (cmd/licensegen explains what and why). GoReleaser runs this
+# before it builds the packages, see .goreleaser.yaml.
+third-party-licenses: ## Write bin/THIRD_PARTY_LICENSES, which the packages install
+	@command -v bun >/dev/null || { echo "bun not found (needed to read the frontend packages)"; exit 1; }
+	mkdir -p bin/licenses
+	# 1. The Go modules behind each program, as go-licenses sees them.
+	$(GO_LICENSES) report ./... --ignore github.com/rasikhq/penguintier \
+		--template cmd/licensegen/report.tmpl > bin/licenses/go-root.tsv
+	cd ui && GOFLAGS=-tags=$(UI_GO_TAGS) $(GO_LICENSES) report . --ignore github.com/rasikhq/penguintier \
+		--template ../cmd/licensegen/report.tmpl > ../bin/licenses/go-ui.tsv
+	# 2. The JavaScript packages are read from node_modules, which has to match
+	# bun.lock (a no-op if `make ui-build` already installed them).
+	cd ui/frontend && bun install --frozen-lockfile
+	# 3. Put everything into one file.
+	$(GO) run ./cmd/licensegen -o $(THIRD_PARTY_LICENSES) -goroot "$$($(GO) env GOROOT)" \
+		-npm ui/frontend bin/licenses/go-root.tsv bin/licenses/go-ui.tsv
+	@echo "Wrote $(THIRD_PARTY_LICENSES)"
 
 ui-dev: ## Open a UI window with hot reload (UI_SCREEN=join or about)
 	@test -x $(WAILS) || { echo "wails not found; run 'make tools'"; exit 1; }

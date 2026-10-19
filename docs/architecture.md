@@ -34,6 +34,7 @@ It has two Go modules:
 | `penguintier-dnsd` | `cmd/penguintier-dnsd` | `/usr/libexec/penguintier/penguintier-dnsd` | system user `penguintier-dns`, under systemd |
 | `zt-mock` | `cmd/zt-mock` | not shipped (dev only) | developer |
 | `ztctl` | `cmd/ztctl` | not shipped (dev only) | developer |
+| `licensegen` | `cmd/licensegen` | not shipped (build tool of `make third-party-licenses`) | developer, GoReleaser |
 
 ### Shared packages
 
@@ -254,7 +255,7 @@ file, it calls this out in its PR description.
 | `internal/tray/`, `internal/platform/{clipboard,notify,open}/`, `third_party/fyne-systray/` | P3: tray core |
 | `internal/resolved/`, `cmd/penguintier-dnsd/`, `packaging/systemd/penguintier-dnsd.*`, `packaging/polkit/*.rules`, `packaging/sysusers/`, `scripts/zt-selftest-network.sh` | P4: DNS daemon |
 | `cmd/penguintier/`, `internal/doctor/`, `internal/platform/{autostart,instance,watcher,packagekit}/` (may also touch P3's files) | P5: desktop integration |
-| `.goreleaser.yaml`, `packaging/{scripts,metainfo,desktop}/`, `packaging/systemd/*.preset`, `.github/workflows/{package,release}.yml` | P6: packaging |
+| `.goreleaser.yaml`, `cmd/licensegen/`, `packaging/{scripts,metainfo,desktop}/`, `packaging/systemd/*.preset`, `.github/workflows/{package,release}.yml` | P6: packaging |
 | `README.md`, `CHANGELOG.md`, man page, `.github/FUNDING.yml`, `funding.json` | P7: release |
 | `CLAUDE.md`, `docs/architecture.md`, `.golangci.yml`, `.gitignore`, `.github/workflows/ci.yml`, `.vscode/` | P0; later changes are small and called out in the PR |
 | `docs/plan.md` | read-only copy of the approved plan |
