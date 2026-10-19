@@ -174,7 +174,9 @@ Rules:
   no tray without an icon is left running into the next login.
 - **Notifications** go out on connections that stay open while the tray
   runs: GNOME Shell removes an app's notifications as soon as the
-  connection that sent them closes.
+  connection that sent them closes. Each one has a `default` action (the
+  click), even when it does nothing: without one, a click makes GNOME
+  launch the .desktop entry, which would start a second Penguintier.
 - **Missing tray host:** when nothing has owned
   `org.kde.StatusNotifierWatcher` with `IsStatusNotifierHostRegistered`
   true for 10 seconds, the tray shows one notification with fix steps for

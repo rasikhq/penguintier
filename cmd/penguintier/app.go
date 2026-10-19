@@ -164,11 +164,25 @@ func importDesktopUI(state *appState) {
 
 // answerActivations shows "already running" each time the user starts
 // Penguintier again while it runs (see instance.Activate).
+//
+// It also reads and ignores the clicks on these notices: they carry a
+// "default" action only so that a click doesn't start another Penguintier
+// (see notify.Notify), and nothing needs to happen.
 func answerActivations(ctx context.Context, activations <-chan struct{}, n *notify.Notifier) {
+	// Receiving from a nil channel waits forever, so without a notifier
+	// that case of the select below simply never happens.
+	var clicks <-chan notify.ActionEvent
+	if n != nil {
+		clicks = n.Actions()
+	}
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case _, ok := <-clicks:
+			if !ok {
+				clicks = nil // the notifier was closed
+			}
 		case <-activations:
 			showNotice(ctx, n, notify.Notification{
 				Summary: "Penguintier is already running",

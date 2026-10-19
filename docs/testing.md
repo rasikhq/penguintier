@@ -284,8 +284,8 @@ Icons:
   with fake tools in `$PATH`.
 - `notify`: a fake notification service on a private `dbus-daemon`
   (skipped if `dbus-daemon` is not installed): body markup escaping, hints,
-  actions, and that an `ActionInvoked` signal from another program is
-  ignored.
+  actions (a `default` action is always added, P5), and that an
+  `ActionInvoked` signal from another program is ignored.
 - `open`: only `http`/`https` addresses reach a fake `xdg-open`.
 
 ### Underscores in menu labels
@@ -698,7 +698,9 @@ are all in place. Quit any running Penguintier first.
    runs: it exits 0 at once (`echo $?`), the running tray shows
    "Penguintier is already running" (it stays in the notification list),
    and there is still one icon. Starting it from the app grid does the
-   same.
+   same. Click the notification: it closes, and no new one appears
+   (a click on any Penguintier notification must never start Penguintier
+   again).
 4. **Missing tray host.** `gnome-extensions disable
    ubuntu-appindicators@ubuntu.com`: the icon disappears, and about 10 s
    later one notification says the extension is turned off, with the
