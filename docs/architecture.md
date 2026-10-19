@@ -63,17 +63,22 @@ It has two Go modules:
 - **App ID:** `io.github.rasikhq.Penguintier`. It is used for:
   - the .desktop file name and the app icon name,
   - the D-Bus single-instance name,
-  - the Wails window's WM class (`ProgramName` in `ui/main.go`, and
-    `StartupWMClass` in the .desktop file),
+  - the program name of the Join and About windows, which gives their
+    Wayland app ID and X11 WM_CLASS (`setProgramName` in
+    `ui/progname.go`, called before GTK starts), matched by
+    `StartupWMClass` in the .desktop file,
   - the polkit action prefix (`io.github.rasikhq.Penguintier.read-token`).
-- The README and the About window say: "Unofficial; not affiliated with
-  ZeroTier, Inc."
+- The README and the About window say that Penguintier is unofficial and
+  not affiliated with ZeroTier, Inc.
 
 ### Install paths
 
 - `/usr/bin/penguintier`
 - `/usr/libexec/penguintier/{penguintier-ui,penguintier-token-helper,penguintier-dns-helper,penguintier-dnsd}`
-- Helper lookup order (how the tray finds `penguintier-ui` and the token helper):
+- `/usr/share/man/man1/penguintier.1.gz`: the man page, from
+  `packaging/man/penguintier.1` (gzipped by `make man`).
+- Helper lookup order (how the tray finds `penguintier-ui`, the token
+  helper and the DNS helper):
   1. `$PENGUINTIER_LIBEXEC_DIR`
   2. the directory of the running `penguintier` binary
   3. `/usr/libexec/penguintier`
@@ -87,8 +92,11 @@ It has two Go modules:
 |---|---|
 | `PENGUINTIER_API_URL` | Base URL of the ZeroTier API, e.g. `http://127.0.0.1:9993`. Overrides port discovery; used with `zt-mock`. |
 | `PENGUINTIER_TOKEN_FILE` | Read the API token from this file first. |
-| `PENGUINTIER_LIBEXEC_DIR` | Where to find `penguintier-ui` and `penguintier-token-helper`. |
-| `PENGUINTIER_LOG` | Log level: `debug`, `info` (default), `warn`, `error`. |
+| `PENGUINTIER_LIBEXEC_DIR` | Where to find `penguintier-ui`, `penguintier-token-helper` and `penguintier-dns-helper`. |
+| `PENGUINTIER_LOG` | Log level: `debug`, `info` (default), `warn`, `error`. Only `penguintier-dnsd` reads it so far; the tray logs at `info`. |
+
+These and the files below are documented for users in
+`packaging/man/penguintier.1`; keep the man page in step when they change.
 
 ### ZeroTier API token
 
@@ -126,7 +134,8 @@ Rules:
   `--autostart` never asks.
 - `penguintier deauthorize [--yes]` deletes that copy, after asking unless
   `--yes` is given. A tray that is running keeps its access until it
-  quits.
+  quits. Exit codes: 0 deleted (or there was nothing to delete), 1 not
+  deleted, 2 bad command line.
 
 ### ZeroTier API address
 
@@ -148,7 +157,9 @@ Rules:
     the user set it in the menu. From then on Penguintier never changes it
     by itself.
 - Autostart: `$XDG_CONFIG_HOME/autostart/io.github.rasikhq.Penguintier.desktop`
-  with `Exec=penguintier --autostart`. With `--autostart` the tray never
+  with `Exec=penguintier --autostart` and `TryExec=penguintier` (the file
+  stays in the home folder after an uninstall; TryExec makes the desktop
+  skip it then). With `--autostart` the tray never
   shows first-run prompts. "Start at Login" writes or removes it; it counts
   as off when the file has `Hidden=true` or
   `X-GNOME-Autostart-enabled=false`. It is turned on after the first run
@@ -307,7 +318,11 @@ not fully restored (manual steps printed).
 - Sort networks by ID.
 - Menu depth ≤ 2: addresses and routes are flattened into the network's
   submenu as sections.
-- Test whether `_` in labels needs escaping (P3).
+- Labels go over dbusmenu, where `_` marks a keyboard shortcut. Spec hosts
+  (KDE, GTK) need every `_` doubled; GNOME Shell's AppIndicator extension
+  only strips the first one. The tray escapes for the host that owns
+  `org.kde.StatusNotifierWatcher` (see "Underscores in menu labels" in
+  testing.md).
 
 ### UI process (`penguintier-ui`)
 
@@ -356,6 +371,13 @@ Each binary that reports a version has `var version = "dev"` in its
 `main` package. Builds set it with
 `-ldflags "-X main.version=<version>"` (`make build` uses `git describe`;
 GoReleaser uses the tag).
+
+The git tag is the only place the version number comes from: tag
+`v0.1.0` gives packages `penguintier_0.1.0_amd64.deb` and
+`penguintier-0.1.0-1.x86_64.rpm`, and `penguintier --version` prints
+`penguintier 0.1.0`. Nothing in the code needs bumping for a release; the
+release checklist in testing.md ("P7") lists the files that describe a
+release (CHANGELOG.md, the metainfo `<releases>`).
 
 ### Go toolchain
 
@@ -419,7 +441,7 @@ file, it calls this out in its PR description.
 | `internal/resolved/`, `internal/dnsrule/` (moved out of the daemon by P5), `cmd/penguintier-dnsd/`, `packaging/systemd/penguintier-dnsd.*`, `packaging/polkit/*.rules`, `packaging/sysusers/`, `scripts/zt-selftest-network.sh` | P4: DNS daemon |
 | `cmd/penguintier/`, `cmd/penguintier-dns-helper/`, `internal/doctor/`, `internal/dnsstatus/`, `internal/dnssetup/`, `internal/platform/{autostart,instance,watcher}/`, `scripts/dns-lab/` (may also touch P3's files) | P5: desktop integration |
 | `.goreleaser.yaml`, `cmd/licensegen/`, `packaging/{scripts,metainfo,desktop}/`, `packaging/systemd/*.preset`, `.github/workflows/{package,release}.yml` | P6: packaging |
-| `README.md`, `CHANGELOG.md`, man page, `.github/FUNDING.yml`, `funding.json` | P7: release |
+| `README.md`, `CHANGELOG.md`, `packaging/man/`, `docs/screenshots/`, `scripts/changelog-section.awk`, `.github/FUNDING.yml`, `funding.json` | P7: release |
 | `CLAUDE.md`, `docs/architecture.md`, `.golangci.yml`, `.gitignore`, `.github/workflows/ci.yml`, `.vscode/` | P0; later changes are small and called out in the PR |
 | `docs/plan.md` | read-only copy of the approved plan |
 

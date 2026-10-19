@@ -1,5 +1,10 @@
 # Penguintier v1: plan
 
+The plan as approved before building v1. Where it and
+[architecture.md](architecture.md) disagree, architecture.md describes what
+was built (for example, "Enable DNS support…" uses its own root helper
+instead of PackageKit).
+
 ## Context
 
 ZeroTier has a good tray app on macOS and Windows. Linux has none.
@@ -18,15 +23,15 @@ Penguintier is an MIT-licensed Linux tray power tool. Goals:
 
 It also has a typo'd identifier (`come.rasikh.penguintier`), and `LICENSE` was deleted in the init commit. **The template is replaced, not kept.** Choosing Tauri/Rust was partly shaped by this scaffold; that was revisited, and the stack below was chosen fresh.
 
-## Locked decisions (from user)
+## Locked decisions
 
 - **v1 scope:** official-tray parity plus the Linux DNS fix. Nothing else.
 - **Desktops:** any desktop that works without custom per-desktop code. That covers KDE, GNOME (with the AppIndicator extension), XFCE, Cinnamon, MATE, Budgie, LXQt, COSMIC and waybar/sway. A dedicated GNOME extension waits until later.
 - **Distro floor:** Ubuntu 24.04+, Debian 12+, current Fedora, Mint 22+. The polkit JS rules require this.
 - **Packaging:** .deb + .rpm on GitHub Releases. AUR, AppImage, Flatpak and OBS repos come later.
 - **License:** restore MIT with `git checkout 7109743 -- LICENSE`.
-- **Stack: Go + React.** Tray, DNS daemon and helpers are written in Go. The Join/About windows are React + TypeScript via Wails v2, launched on demand as a separate process that exits on close. The user may grow these into a full GUI later.
-- **Icons/brand:** designed by Claude. The user picks one from an HTML preview page. The icon is original, not the ZeroTier logo. The README and About say "Unofficial; not affiliated with ZeroTier, Inc."
+- **Stack: Go + React.** Tray, DNS daemon and helpers are written in Go. The Join/About windows are React + TypeScript via Wails v2, launched on demand as a separate process that exits on close. They may grow into a full GUI later.
+- **Icons/brand:** designed by Claude. One is picked from an HTML preview page. The icon is original, not the ZeroTier logo. The README and About say "Unofficial; not affiliated with ZeroTier, Inc."
 - **DNS:** done through systemd-resolved. Where resolved is missing (Debian), the tray offers "Enable DNS support…", which installs systemd-resolved through PackageKit behind a single polkit prompt.
 - **Execution:** each phase runs in its own session and worktree and ends in one PR to `master`. Phases run in parallel where they own disjoint files.
 
@@ -191,7 +196,7 @@ Wave 1 = {P1, P2, P6} in parallel. Wave 2 = {P3, P4} in parallel.
 - **Join dialog:** hex-only input filter. The Join button stays disabled until 16 characters are entered. Enter submits and Esc cancels.
 - **About:** version, MIT license, repo link, disclaimer.
 - **Brand work:**
-  - 2–3 SVG concepts (penguin with an orbit/network motif) in `assets/brand/preview.html` for the user to pick from.
+  - 2–3 SVG concepts (penguin with an orbit/network motif) in `assets/brand/preview.html` to pick from.
   - Once picked: the final hicolor set and tray state icons.
 
 **P6: Packaging + CI** (wave 1, built against the stubs)

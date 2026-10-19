@@ -932,15 +932,216 @@ systemctl status penguintier-dnsd.path
 path unit again (see `packaging/scripts/preinstall.sh` for why that needs a
 marker file).
 
-## P7: Manual matrix
+## P7: Release
 
-TODO(P7): VMs (GNOME Boxes or quickemu, with snapshots):
+### Release checklist
 
-- Ubuntu 24.04 GNOME: primary, DNS end-to-end.
-- Fedora GNOME: no tray by default, SELinux.
-- Fedora KDE: tooltip.
-- Debian 13 GNOME: the "Enable DNS support…" path.
-- Debian 12 XFCE: X11.
-- Mint 22 Cinnamon.
-- Fedora Sway: no polkit agent.
-- Pop!_OS COSMIC.
+Before tagging a release (`vX.Y.Z`):
+
+1. Every PR for the release is merged, and CI (`ci.yml`, `package.yml`)
+   is green on `master`.
+2. The files that describe the release say the same version and date:
+   - `CHANGELOG.md`: a `## [X.Y.Z] - <date>` section (release.yml uses it
+     as the release notes, and stops if it is missing), plus the link at
+     the bottom.
+   - `packaging/metainfo/io.github.rasikhq.Penguintier.metainfo.xml`: a
+     `<release version="X.Y.Z" date="<date>">` entry, newest first.
+   - `packaging/man/penguintier.1`: the date in `.TH`, if the page changed.
+
+   Nothing else holds the version: the tag sets it (see "Version" in
+   architecture.md).
+3. `make lint test build ui-build package` passes on a clean checkout of
+   `master`.
+4. The test matrix below has a result for each setup, and nothing it found
+   is still open.
+5. The README's screenshots match the current menu, and its links work.
+6. Tag and push (this starts release.yml, which publishes the release):
+
+   ```
+   git tag -a vX.Y.Z -m "Penguintier X.Y.Z"
+   git push origin vX.Y.Z
+   ```
+
+7. Check the published release: the .deb, the .rpm and `SHA256SUMS` are
+   attached, `sha256sum --check --ignore-missing SHA256SUMS` passes for
+   both, the notes are the CHANGELOG section, and installing the .deb from
+   the release page in one VM works.
+
+To build the release packages locally without a tag on the real repo,
+tag a throwaway clone (packages named `penguintier_0.1.0_amd64.deb` and
+`penguintier-0.1.0-1.x86_64.rpm`, `--version` prints `penguintier 0.1.0`):
+
+```
+git clone -q . /tmp/pt-release && cd /tmp/pt-release
+git tag v0.1.0
+git remote set-url origin https://github.com/rasikhq/penguintier.git
+awk -v v=0.1.0 -f scripts/changelog-section.awk CHANGELOG.md > /tmp/release-notes.md
+env -u GITHUB_TOKEN ~/go/bin/goreleaser release --clean --skip=publish,announce --release-notes /tmp/release-notes.md
+```
+
+The clone's `origin` points at the local folder, but GoReleaser wants the
+GitHub address to name the release. With `--skip=publish,announce` nothing
+is uploaded and no token is needed. Delete `/tmp/pt-release`
+afterwards.
+
+### Test matrix
+
+Most distributions are built on Debian, Ubuntu or Fedora, and a desktop's
+tray works the same on every distribution. So the matrix pairs each of the
+three base distributions with a different desktop: three machines cover
+three distribution families and three desktops. CI's install smoke test (P6) already covers
+installing, upgrading and removing the packages in `debian:12`,
+`debian:13`, `ubuntu:24.04` and `fedora:latest` containers on every PR, so
+the machines focus on the desktop.
+
+| Setup | What it covers |
+|---|---|
+| Debian 13 GNOME (the dev machine) | Debian, GNOME with the AppIndicator extension, Wayland, and "Enable DNS support…" on a real machine. |
+| Fedora 44 KDE (VM) | Fedora: the rpm, SELinux in enforcing mode, systemd-resolved by default. KDE Plasma: tooltips, spec-style underscore escaping, KDE's own notifications and polkit agent, Wayland. |
+| Linux Mint 22 Cinnamon (VM) | Ubuntu 24.04, which Mint 22 is built on: the .deb with Ubuntu's libraries, systemd-resolved by default. Cinnamon: the XApp status applet as tray host, X11, copying with xclip. Mint 22 is also the oldest Mint release Penguintier supports. |
+
+Not covered by a machine for 0.1.0: Xfce, MATE, Budgie, LXQt, COSMIC and
+sway with waybar. Their panels use the same StatusNotifierItem standard,
+so they are expected to work, and test reports are welcome. sway is the
+usual setup without a polkit agent, so the first-run prompt fails there
+and `penguintier doctor` prints the manual command (covered by unit
+tests).
+
+#### Setting up the VMs (quickemu)
+
+VMs need hardware virtualization. If `/dev/kvm` doesn't exist, turn on
+"Intel Virtualization Technology" (VT-x, or SVM on AMD) in the firmware setup
+(press F2 or Del while the computer starts), then:
+
+```
+ls -l /dev/kvm                    # must exist
+sudo apt install quickemu         # Debian 13 has 4.9.7
+```
+
+On a desktop, `ls -l /dev/kvm` usually ends its mode with a `+`
+(`crw-rw----+`). That means your login session already has access through
+an ACL. If there is no `+` and `python3 -c "open('/dev/kvm','rb')"` fails,
+add yourself to the group with `sudo adduser $USER kvm`, then log out and
+back in.
+
+One VM at a time with 4 GB of RAM fits a 16 GB machine, and each disk grows
+to about 20–30 GB. Make a folder for them and fetch each image (`quickget
+<os>` alone lists the releases and editions it knows):
+
+```
+mkdir -p ~/vms && cd ~/vms
+quickget fedora 44 KDE
+quickget linuxmint 22 cinnamon
+```
+
+quickemu 4.9.7 is older than some of these releases. Fedora 44 renamed its
+KDE image (`Fedora-KDE-Desktop-Live-44-1.7.x86_64.iso`), and quickget finds
+no URL for it. For Ubuntu 24.04 it asks for 24.04.3, which Ubuntu no longer
+serves: the "ISO" it saves is a 285-byte error page and the checksum check
+fails. It doesn't know Pop!_OS 24.04 at all. In those cases, download the
+current ISO yourself (dl.fedoraproject.org for Fedora), check it against the
+distribution's checksum file, and write the config by hand. For example,
+`ubuntu-24.04.conf`:
+
+```
+#!/usr/bin/quickemu --vm
+guest_os="linux"
+disk_img="ubuntu-24.04/disk.qcow2"
+iso="ubuntu-24.04/ubuntu-24.04.5.1-desktop-amd64.iso"
+disk_size="40G"
+ram="4G"
+cpu_cores="4"
+```
+
+With the image in `~/vms/ubuntu-24.04/`:
+
+```
+cd ~/vms/ubuntu-24.04
+curl -fLO https://releases.ubuntu.com/24.04/ubuntu-24.04.5.1-desktop-amd64.iso
+curl -fsS https://releases.ubuntu.com/24.04/SHA256SUMS | grep desktop | sha256sum --check --ignore-missing
+```
+
+Start a VM with `quickemu --vm ubuntu-24.04.conf`, install the system with
+the defaults, shut it down, and take a snapshot, so every test run can
+start from a clean system:
+
+```
+quickemu --vm ubuntu-24.04.conf --snapshot create clean
+quickemu --vm ubuntu-24.04.conf --snapshot apply clean    # back to the clean system (VM off)
+```
+
+To get the packages into a VM, serve them from the host. quickemu's
+default network reaches the host at 10.0.2.2:
+
+```
+make package build
+mkdir -p bin/vm && cp dist/*.deb dist/*.rpm bin/zt-mock scripts/zt-selftest-network.sh bin/vm/
+python3 -m http.server 8000 --directory bin/vm
+```
+
+In the VM: `curl -O http://10.0.2.2:8000/<file name>`. Stop the server
+with Ctrl+C when done.
+
+#### Common checklist (every setup)
+
+1. **Install.** ZeroTier first (`curl -s https://install.zerotier.com |
+   sudo bash`, after which `sudo zerotier-cli info` says ONLINE), then the package
+   (`sudo apt install ./penguintier_*_amd64.deb` or `sudo dnf install
+   ./penguintier-*.rpm`). `man penguintier` opens. Penguintier is in the
+   app menu with its icon.
+2. **Tray.** Start it from the app menu. The icon shows in the panel, and a
+   left click opens the menu. Where there is no tray, one notification
+   with fix steps appears after about 10 s instead. Follow them, and the
+   icon then appears by itself.
+3. **Authorize.** The polkit prompt "Penguintier needs to read the
+   ZeroTier service's API token…" opens by itself. After the password, the
+   menu shows "My Address" and `ls -l ~/.zeroTierOneAuthToken` shows
+   `-rw-------`.
+4. **Menu.** Join the throwaway network `<your address>dead01` with Join
+   New Network… (the Join window has keyboard focus): "Joining…", then the
+   network. Toggle each check box (it stays toggled). Click "My Address"
+   and paste it somewhere. Disconnect → Saved Networks → Reconnect →
+   Disconnect → Forget. About opens the About window (light or dark like
+   the desktop).
+5. **Mock scenarios** (labels and the attention icon, without a real
+   network). Quit the tray first, then in one terminal run
+   `chmod +x zt-mock && ./zt-mock --scenario many-networks`, and in a
+   second one paste the two `export` lines it prints and run
+   `XDG_CONFIG_HOME=$(mktemp -d) penguintier --foreground`. `lab_01`,
+   `private_net` and `some_new_state` show their underscores, the icon is
+   "attention", and the tooltip (where the desktop shows tooltips) says "12
+   networks, 5 need attention". Ctrl+C both, then start the real tray
+   again.
+6. **Start at Login.** It is checked after the first run. Log out and in:
+   the icon comes back without a prompt. A second start from the app menu
+   shows "Penguintier is already running", still one icon.
+7. **Doctor.** `penguintier doctor` exits 0 with "No problems found" (or
+   only warnings that match the setup, such as no systemd-resolved).
+   Keep `penguintier doctor --json` with the results.
+8. **DNS.** Where systemd-resolved runs: `bash zt-selftest-network.sh`
+   (needs `curl` and `jq`), start the DNS server it names (see "End-to-end
+   test" in P4), and check Allow DNS Configuration in the test network's
+   submenu: the row says "DNS: applied" and `resolvectl query
+   host.pt.test` answers through the ZeroTier interface. Where it doesn't
+   (Debian), see "Enable DNS support…" in P5, then undo it with
+   `pkexec /usr/libexec/penguintier/penguintier-dns-helper undo`.
+   `bash zt-selftest-network.sh down` at the end.
+9. **Remove.** `sudo apt remove penguintier` (or `sudo dnf remove
+   penguintier`): no `penguintier` process is left, and `resolvectl
+   status` shows no DNS on the ZeroTier interface.
+
+On Fedora also: `sudo ausearch -m avc -ts recent` shows no denials for
+penguintier.
+
+#### Results
+
+Release candidate 0.1.0. "CI" = the container smoke test in
+`package.yml`. The VM rows are filled in as each setup is run.
+
+| Setup | Date | Package | Result | Notes |
+|---|---|---|---|---|
+| Containers: install, upgrade, remove, purge (`smoke-test.sh`) | 2026-10-19 | RC snapshot of the P7 PR | pass | Run locally on debian:12, ubuntu:24.04 and fedora:latest (Fedora 44). CI runs all four images on every PR. The man page installs, and lintian no longer reports `no-manual-page`. |
+| Release build from a tag (throwaway clone tagged v0.1.0) | 2026-10-19 | 0.1.0 | pass | `penguintier_0.1.0_amd64.deb`, `penguintier-0.1.0-1.x86_64.rpm`, `SHA256SUMS` checks out, and `--version` prints `penguintier 0.1.0`. |
+| Debian 13 GNOME 48 Wayland (dev machine) | 2026-10-19 | snapshot 9bf93c4, then snapshot a34529e (the RC) | pass | Every P5 manual step, including "Enable DNS support…" (see P5). With the RC: the upgrade installs over the earlier build, the tray starts from the app grid without a prompt, the Join and About windows show Penguintier's icon in the dash and Alt+Tab, `man penguintier` opens, and `penguintier doctor` finds no problems. An autostart file written by an earlier build keeps its old contents (no `TryExec`) until Start at Login is turned off and on again. Only builds from before 0.1.0 wrote such a file. |
+| Fedora 44 KDE Plasma 6.6 (Wayland, VM) | 2026-10-19 | snapshot of the P7 PR, with the WM_CLASS fix | pass | The rpm installs (dnf pulls in webkit2gtk4.1 and xclip) with SELinux enforcing, and the audit log has no denials (the daemon runs as `unconfined_service_t`). The icon shows in KDE's tray (`kded6`), sometimes under the ^ arrow at first. KDE's polkit agent shows the first-run prompt, and the token copy is 0600. Start at Login runs as `app-io.github.rasikhq.Penguintier@autostart.service` at login, with no prompt. "Allow DNS Configuration" → "DNS: applied", `~pt.test` with no default route, `host.pt.test` resolves through the ZeroTier link. Copying works with wl-copy. The Join window follows KDE's dark theme and has the right taskbar icon. KDE shows the tooltip, and underscores are right with KDE's spec-style escaping. `penguintier doctor` finds no problems. `dnf remove` stops the daemon, which removes its DNS settings. Cosmetic: KDE draws a submenu's `>` arrow right against a long label on items that also have a check box. That is Plasma's layout. |
+| Linux Mint 22 Cinnamon (X11, VM) | 2026-10-19 | snapshot of the P7 PR | pass, after one fix | The .deb installs on the Ubuntu 24.04 base (pulls in wl-clipboard and xclip). The icon shows in Cinnamon's tray (`xapp-sn-watcher`). The first-run prompt comes from Cinnamon's polkit agent and writes a 0600 token copy. Start at Login brings the tray back after a new login, with no prompt. "Allow DNS Configuration" in the menu → "DNS: applied", `~pt.test` on the ZeroTier link, `host.pt.test` resolves through it and other names don't. Copying works with xclip, notifications show. Underscores and "…" are right, and Cinnamon shows the tooltip. `penguintier doctor` finds no problems. `apt remove` stops the daemon, which removes its DNS settings. **Found and fixed:** the Join and About windows had a blank taskbar icon (their WM_CLASS was wrong, and GTK dropped the 512 px window icon). See the P7 PR. A tray that is already running keeps running after `apt remove` until you quit it or log out (the README says so). |

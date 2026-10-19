@@ -70,6 +70,21 @@ jobs:
         working-directory: ui/frontend
         run: bun install --frozen-lockfile
 
+      # The release notes are CHANGELOG.md's section for this tag (tag
+      # v0.1.0 -> "## [0.1.0]"). No section means the release checklist
+      # (docs/testing.md, "P7") was skipped, so stop before publishing.
+      # /tmp, not the checkout: GoReleaser refuses to run when the checkout
+      # has files git doesn't know.
+      - name: Release notes from CHANGELOG.md
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" -f scripts/changelog-section.awk CHANGELOG.md > /tmp/release-notes.md
+          if [ ! -s /tmp/release-notes.md ]; then
+            echo "::error::CHANGELOG.md has no '## [$version]' section"
+            exit 1
+          fi
+          cat /tmp/release-notes.md
+
       # Builds everything (including `make ui-build`), writes SHA256SUMS and
       # creates the GitHub Release for this tag with the .deb, .rpm and
       # SHA256SUMS attached.
@@ -79,6 +94,6 @@ jobs:
           distribution: goreleaser
           # Keep in sync with GORELEASER_VERSION in the Makefile.
           version: v2.18.3
-          args: release --clean
+          args: release --clean --release-notes /tmp/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

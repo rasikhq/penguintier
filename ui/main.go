@@ -84,6 +84,10 @@ func run(args []string) int {
 		return 2
 	}
 
+	// Name the program before GTK starts, so desktops match the window to
+	// Penguintier's .desktop file (see progname.go).
+	setProgramName(appID)
+
 	// Pick light or dark before the window exists, and paint the window
 	// in the matching color so it doesn't flash white while the page loads.
 	style, dark := applyDesktopStyle()
@@ -111,8 +115,8 @@ func run(args []string) int {
 			app,
 		},
 		Linux: &linux.Options{
-			// Sets the Wayland app ID and the X11 WM class, so desktops
-			// match the window to io.github.rasikhq.Penguintier.desktop.
+			// Wails sets the program name too, but only after the window
+			// exists; setProgramName above already did it in time.
 			ProgramName: appID,
 			Icon:        appIcon,
 			// Two small static windows don't need the GPU. Software

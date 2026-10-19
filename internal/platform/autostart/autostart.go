@@ -15,11 +15,14 @@ import (
 const FileName = "io.github.rasikhq.Penguintier.desktop"
 
 // entry is what Enable writes. --autostart tells the tray it was started
-// at login, so it never shows first-run prompts then.
+// at login, so it never shows first-run prompts then. TryExec makes the
+// desktop skip the entry when penguintier is no longer installed: the file
+// lives in the user's home, so uninstalling the package leaves it behind.
 const entry = `[Desktop Entry]
 Type=Application
 Name=Penguintier
 Comment=ZeroTier tray icon, started at login
+TryExec=penguintier
 Exec=penguintier --autostart
 Icon=io.github.rasikhq.Penguintier
 Terminal=false

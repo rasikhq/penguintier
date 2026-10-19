@@ -1,0 +1,325 @@
+.\" Man page for penguintier, written by hand in roff (man(7) macros).
+.\" Preview it with:   man -l packaging/man/penguintier.1
+.\" Check it with:     groff -man -Tutf8 -ww -z packaging/man/penguintier.1
+.\" The packages install it gzipped as /usr/share/man/man1/penguintier.1.gz
+.\" (make man). Update the date below when the content changes.
+.TH PENGUINTIER 1 2026-10-19 "Penguintier" "User Commands"
+.\" Left-aligned, no hyphenation: command and file names stay whole.
+.ad l
+.nh
+.SH NAME
+penguintier \- tray app for ZeroTier networks on Linux (unofficial)
+.SH SYNOPSIS
+.B penguintier
+.RB [ \-\-autostart ]
+.RB [ \-\-foreground ]
+.br
+.B penguintier \-\-version
+.br
+.B penguintier doctor
+.RB [ \-\-json ]
+.br
+.B penguintier deauthorize
+.RB [ \-\-yes ]
+.SH DESCRIPTION
+.B penguintier
+puts your ZeroTier networks in the system tray, with the same menu as the
+official ZeroTier app on macOS and Windows: your node address, joining and
+leaving networks, each network's settings, status, addresses and routes,
+SSO logins and saved networks.
+It talks to the local ZeroTier service,
+.BR zerotier\-one (8),
+through its API, and does not replace it.
+.PP
+Penguintier also makes ZeroTier's \(lqAllow DNS Configuration\(rq work on
+Linux, through
+.BR systemd\-resolved (8)
+(see
+.B DNS
+below).
+.PP
+The icon is a StatusNotifierItem (AppIndicator).
+It shows up on KDE Plasma, Xfce, Cinnamon, MATE, Budgie, LXQt, COSMIC and
+bars such as waybar.
+GNOME needs the \(lqAppIndicator and KStatusNotifierItem Support\(rq
+extension.
+When no tray is found for 10 seconds, Penguintier shows one notification
+with fix steps for the desktop (once per login).
+.SH TRAY
+Run without a command,
+.B penguintier
+starts the tray.
+.IP \(bu 2
+Started from a terminal, it starts a copy of itself in the background
+(the same as
+.BR "penguintier \-\-foreground" ),
+with its log in the systemd journal, and returns at once.
+Ctrl+C or closing the terminal does not quit it.
+Use Quit in its menu instead.
+.IP \(bu 2
+Only one copy runs per login.
+Starting it again makes the running copy show \(lqPenguintier is already running\(rq, and the new one exits with status 0.
+.IP \(bu 2
+The first time it runs (not at login), it asks for authorization, as
+described under
+.B AUTHORIZATION
+below.
+After the first start that reaches ZeroTier, it turns on Start at Login,
+unless you changed that setting yourself.
+.IP \(bu 2
+It quits when the desktop session ends.
+.SH OPTIONS
+.TP
+.B \-\-autostart
+Started by the desktop at login (the Start at Login entry uses it).
+Never asks for authorization by itself, and a second copy started this way
+exits quietly.
+.TP
+.B \-\-foreground
+Stay in the terminal, with the log on standard error, instead of moving to
+the background.
+.TP
+.B \-\-version
+Print the version and exit.
+.TP
+.BR \-h ", " \-\-help
+Print a short usage text and exit.
+.PP
+Options can be written with one dash or two
+.RB ( \-version
+is the same as
+.BR \-\-version ).
+.SH COMMANDS
+.TP
+.BR doctor " [" \-\-json ]
+Check everything Penguintier depends on and print one line per check:
+the ZeroTier service, the API token and whether it works, the tray host,
+notifications, the clipboard tools, polkit, systemd\-resolved, the DNS
+daemon, each network's DNS and the state of \(lqEnable DNS
+support\(rq.
+Problems come with a fix, such as a command to run.
+.IP
+With
+.BR \-\-json ,
+print the report as JSON for scripts and bug reports:
+.B schemaVersion
+(1),
+.BR ok ,
+.B checks
+(each with
+.BR id ,
+.BR title ,
+.B status
+.RB ( ok ,
+.BR info ,
+.BR warn ,
+.BR fail
+or
+.BR skip ),
+.BR summary ,
+and optionally
+.B fix
+and
+.BR details )
+and
+.BR networks .
+Fields are only ever added, and a change of meaning bumps
+.BR schemaVersion .
+The report contains your ZeroTier node address and network IDs.
+.TP
+.BR deauthorize " [" \-\-yes ]
+Delete the token copy
+.IR ~/.zeroTierOneAuthToken ,
+after asking (or at once with
+.BR \-\-yes ).
+Penguintier and
+.BR zerotier\-cli (1)
+then need authorizing again.
+A tray that is already running keeps working until it quits.
+.SH AUTHORIZATION
+ZeroTier only accepts API calls with its API token, which is in
+.IR /var/lib/zerotier\-one/authtoken.secret ,
+readable only by root.
+On the first run, or when you click \(lqAuthorize Penguintier\&...\(rq,
+Penguintier runs its token helper through
+.BR pkexec (1)
+(polkit action
+.BR io.github.rasikhq.Penguintier.read\-token ),
+which asks for your password once, and saves a copy of the token in
+.I ~/.zeroTierOneAuthToken
+with mode 0600.
+.BR zerotier\-cli (1)
+reads the same file.
+.PP
+Whoever has the token can fully control ZeroTier on this computer, including
+joining networks and routing all traffic through one.
+With the copy in your home folder, any program running as you can do that.
+Penguintier refuses a token file that you don't own or that other users can
+read.
+.PP
+Without a polkit agent (some window managers have none),
+.B penguintier doctor
+prints a command that makes the copy by hand.
+.SH DNS
+On Linux, the ZeroTier service does not apply a network's DNS settings.
+The
+.B penguintier\-dnsd
+system service, installed with the package, does: for each network with
+\(lqAllow DNS Configuration\(rq on, it tells
+.BR systemd\-resolved (8)
+to send queries for the network's DNS domain to the network's DNS servers,
+on the network's interface only.
+The domain is routing\-only (\(lq~domain\(rq) and the interface is not a
+default DNS route, so other names still use your normal DNS.
+It leaves alone interfaces whose DNS it did not set, and removes its
+settings when the network leaves, the option is turned off, or the
+service stops.
+Each network's submenu has a \(lqDNS:\(rq row with the state.
+.PP
+On Debian without systemd\-resolved, the menu offers \(lqEnable DNS
+support\&...\(rq.
+It backs up
+.IR /etc/resolv.conf ,
+.I /etc/nsswitch.conf
+and
+.I /etc/systemd/resolved.conf
+(if present), installs systemd\-resolved behind one password prompt, checks
+that names still resolve, and undoes everything by itself when they don't.
+To switch back later, run:
+.PP
+.RS
+.B pkexec /usr/libexec/penguintier/penguintier\-dns\-helper undo
+.RE
+.SH ENVIRONMENT
+.TP
+.B PENGUINTIER_API_URL
+Base URL of the ZeroTier API, for example
+.BR http://127.0.0.1:9993 .
+Overrides the port discovery (see
+.BR FILES ).
+Used for testing against a fake API.
+.TP
+.B PENGUINTIER_TOKEN_FILE
+Read the API token from this file before the usual places.
+.TP
+.B PENGUINTIER_LIBEXEC_DIR
+Look for the helper programs
+.RB ( penguintier\-ui ,
+.BR penguintier\-token\-helper ,
+.BR penguintier\-dns\-helper )
+here first, then next to the
+.B penguintier
+binary, then in
+.IR /usr/libexec/penguintier .
+.TP
+.B PENGUINTIER_LOG
+Log level of
+.BR penguintier\-dnsd :
+.BR debug ,
+.B info
+(default),
+.B warn
+or
+.BR error .
+.TP
+.B XDG_CONFIG_HOME
+Where the settings are (default
+.IR ~/.config ).
+.SH FILES
+.TP
+.I ~/.zeroTierOneAuthToken
+Your copy of the ZeroTier API token (mode 0600), written by
+\(lqAuthorize Penguintier\&...\(rq.
+The token is looked for in
+.BR $PENGUINTIER_TOKEN_FILE ,
+this file,
+.IR ~/.zerotier\-local\-auth ,
+then
+.I /var/lib/zerotier\-one/authtoken.secret
+(if readable).
+The first file that exists is used.
+.TP
+.I /var/lib/zerotier\-one/zerotier\-one.port
+The port of the ZeroTier API (9993 if missing).
+Penguintier tries 127.0.0.1, then [::1].
+.TP
+.I ~/.config/penguintier/saved_networks.json
+Networks you disconnected, with their settings, for Reconnect.
+.TP
+.I ~/.config/penguintier/state.json
+What Penguintier remembers between runs (first run done, Start at Login
+chosen, one\-time import done).
+.TP
+.I ~/.config/autostart/io.github.rasikhq.Penguintier.desktop
+The Start at Login entry.
+.TP
+.I ~/.zerotier_ui/saved_networks.json
+Saved networks of the official tray app, imported once.
+.TP
+.I $XDG_RUNTIME_DIR/penguintier/no\-tray\-host\-notice
+Marks that the missing\-tray notification was shown in this login.
+.TP
+.I /usr/libexec/penguintier/
+The helper programs: the Join and About windows, the token helper, the
+DNS switch helper and the DNS daemon.
+.TP
+.I /var/lib/penguintier/dns\-backup/
+The backup made by \(lqEnable DNS support\&...\(rq.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.B doctor
+also exits 0 when there are only warnings.
+.TP
+.B 1
+Failure.
+.B doctor
+exits 1 when a check failed, and
+.B deauthorize
+exits 1 when nothing was deleted.
+.TP
+.B 2
+Wrong command line.
+.SH EXAMPLES
+Check the setup, for example before reporting a bug:
+.PP
+.RS
+.EX
+penguintier doctor
+penguintier doctor \-\-json > penguintier\-doctor.json
+.EE
+.RE
+.PP
+Watch the tray's log, or run it in the terminal:
+.PP
+.RS
+.EX
+journalctl \-\-user \-t penguintier \-f
+penguintier \-\-foreground
+.EE
+.RE
+.PP
+Watch the DNS daemon:
+.PP
+.RS
+.EX
+journalctl \-u penguintier\-dnsd \-f
+resolvectl status
+.EE
+.RE
+.SH SEE ALSO
+.BR zerotier\-cli (1),
+.BR zerotier\-one (8),
+.BR resolvectl (1),
+.BR systemd\-resolved (8),
+.BR pkexec (1)
+.PP
+https://github.com/rasikhq/penguintier
+.SH NOTES
+Penguintier is unofficial and not affiliated with ZeroTier, Inc.
+ZeroTier is a trademark of ZeroTier, Inc.
+.SH BUGS
+Report bugs at https://github.com/rasikhq/penguintier/issues and attach
+the output of
+.BR "penguintier doctor \-\-json" .

@@ -35,8 +35,10 @@ for size in (32, 48, 64, 128, 256):
     JOBS.append((APP_SVG, f"assets/icons/hicolor/{size}x{size}/apps/{APP_ID}.png", size))
 for state in ("online", "offline", "attention"):
     JOBS.append((f"assets/tray/penguintier-{state}.svg", f"assets/tray/penguintier-{state}.png", 64))
-# The UI's window icon (embedded by ui/main.go).
-JOBS.append((APP_SVG, "ui/build/appicon.png", 512))
+# The UI's window icon (embedded by ui/main.go). 128 px, not larger: on
+# X11, GTK 3 drops a 512 px window icon without a word, and taskbars that
+# read _NET_WM_ICON (Cinnamon, Xfce) then show a blank icon.
+JOBS.append((APP_SVG, "ui/build/appicon.png", 128))
 
 
 def render(svg_path, png_path, size):
