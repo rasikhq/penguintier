@@ -24,8 +24,12 @@ func TestEnableDisable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), "\nExec=penguintier --autostart\n") {
-		t.Errorf("autostart file has no Exec=penguintier --autostart line:\n%s", data)
+	// Both lines matter: Exec starts the tray in autostart mode, and
+	// TryExec makes the desktop skip the file after an uninstall.
+	for _, line := range []string{"Exec=penguintier --autostart", "TryExec=penguintier"} {
+		if !strings.Contains(string(data), "\n"+line+"\n") {
+			t.Errorf("autostart file has no %s line:\n%s", line, data)
+		}
 	}
 	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0o644 {
 		t.Errorf("autostart file mode = %v (err %v), want 0644", info.Mode().Perm(), err)
