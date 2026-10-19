@@ -72,8 +72,7 @@ type ViewModel struct {
 //
 // It "embeds" ztapi.Network: the field has a type but no name, so all of
 // Network's fields and methods can be used directly on a NetworkView
-// (n.Name, n.Status, n.AuthExpiry()). It is Go's way of reusing a struct,
-// a little like spreading an object in TypeScript.
+// (n.Name, n.Status, n.AuthExpiry()). It is Go's way of reusing a struct.
 type NetworkView struct {
 	ztapi.Network
 	// SSOExpiry is when the SSO login runs out, in Snapshot.Location. It
