@@ -19,7 +19,6 @@
     --line: #e2e0dd;
     --light-bg: #f6f5f4;
     --dark-bg: #1d1d20;
-    --accent: #1EC8E0;
     font-family: system-ui, -apple-system, "Cantarell", "Ubuntu", "Segoe UI", sans-serif;
     color: var(--ink);
     background: var(--page);
@@ -36,22 +35,11 @@
   .lede { max-width: 70ch; }
   code { font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-size: .92em; }
 
-  /* At a glance */
-  .glance { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin: 24px 0 8px; }
-  .glance a { text-decoration: none; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-  .glance .split { display: grid; grid-template-columns: 1fr 1fr; }
-  .glance .split div { display: grid; place-items: center; padding: 20px 0; }
-  .glance .label { padding: 10px 14px; font-weight: 600; }
-  .glance .label span { color: var(--muted); font-weight: 400; }
-
-  .concept { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; margin-top: 24px; }
-  .concept header { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
-  .concept header p { flex-basis: 100%; max-width: 75ch; margin-top: 4px; }
-  .tag { font-size: 12px; font-weight: 700; background: var(--accent); color: #0b2530; border-radius: 6px; padding: 2px 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; margin-top: 24px; }
+  .card > p { max-width: 75ch; }
 
   .light { background: var(--light-bg); color: #1f2430; }
   .dark { background: var(--dark-bg); color: #f2f2f2; }
-  .black { background: #000; color: #f2f2f2; }
 
   .ladder { display: flex; align-items: flex-end; gap: 22px; padding: 18px 20px 12px; border-radius: 12px; overflow-x: auto; }
   .ladder + .ladder { margin-top: 8px; }
@@ -62,18 +50,6 @@
   .states > div { border-radius: 12px; padding: 14px 16px; display: grid; grid-template-columns: auto repeat(3, 1fr); align-items: center; gap: 10px 14px; font-size: 12px; }
   .states .head { opacity: .65; text-align: center; }
   .states .row { display: flex; gap: 10px; align-items: center; justify-content: center; }
-
-  /* A tray icon in a given state. The concept stage fakes "offline" and
-     "attention" with a filter and a badge; the final icons are real files. */
-  .ti { position: relative; display: inline-block; line-height: 0; }
-  .ti img { display: block; }
-  .ti.offline img { filter: grayscale(1); opacity: .55; }
-  .ti.attention::after {
-    content: "!"; position: absolute; right: -2px; bottom: -2px;
-    width: 55%; height: 55%; border-radius: 50%;
-    background: #F5A524; color: #1f2430; box-shadow: 0 0 0 1px rgba(0,0,0,.25);
-    font: 800 9px/1 system-ui, sans-serif; display: grid; place-items: center;
-  }
 
   /* Mock desktop bars */
   .bar { display: flex; align-items: center; gap: 14px; padding: 0 12px; margin-top: 8px; border-radius: 10px; font-size: 14px; }
@@ -94,12 +70,8 @@
   .panel .launcher { width: 26px; height: 26px; border-radius: 7px; background: currentColor; opacity: .18; }
   .panel .task { width: 120px; height: 28px; border-radius: 6px; background: currentColor; opacity: .08; }
   .panel .clock { font-size: 13px; text-align: right; line-height: 1.15; font-variant-numeric: tabular-nums; }
-  .panel.small { height: 26px; font-size: 12px; }
-  .note { font-size: 12px; margin-top: 6px; }
 
   footer { margin-top: 36px; font-size: 13px; }
-  .concepts-title { margin-top: 48px; font-size: 22px; }
-  .concepts-title + .lede { margin-top: 4px; }
   /* Symbolic icons are drawn in #2e3436; GNOME recolors them to the panel's
      text color. On dark bars this fakes that with a filter, and puts the
      warning badge (bottom-right) back in color on top. */
@@ -112,49 +84,17 @@
 <body>
 <main>
   <h1>Penguintier icons</h1>
-  <p class="lede">The final icon set (concept A, "Orbit", picked on 2026-10-19), drawn from the real
-    files in <code>assets/</code>: the app icon at every size, the tray states in color and as
-    monochrome "symbolic" icons, inside a mock GNOME top bar and desktop panels. The three
-    original concepts are further down.</p>
+  <p class="lede">The icon set, drawn from the real files in <code>assets/</code>: the app icon at
+    every size, and the tray states in color and as monochrome "symbolic" icons, inside a mock
+    GNOME top bar and desktop panels.</p>
 
-  <section class="concept final" id="final">
-    <header><span class="tag">Final</span><h2>Orbit</h2>
-      <p>App icon: <code>icons/hicolor/scalable/apps/io.github.rasikhq.Penguintier.svg</code> (32&nbsp;px and up)
-        and <code>brand/app-icon-small.svg</code> (16–24&nbsp;px). Tray: <code>tray/penguintier-{online,offline,attention}[-symbolic].svg</code>.
-        Run <code>python3 assets/render-icons.py</code> after editing an SVG.</p></header>
+  <section class="card" id="icons">
+    <p>App icon: <code>icons/hicolor/scalable/apps/io.github.rasikhq.Penguintier.svg</code> (32&nbsp;px and up)
+      and <code>brand/app-icon-small.svg</code> (16–24&nbsp;px). Tray: <code>tray/penguintier-{online,offline,attention}[-symbolic].svg</code>.
+      Run <code>python3 assets/render-icons.py</code> after editing an SVG.</p>
   </section>
 
-  <h2 class="concepts-title">Concepts</h2>
-  <p class="lede">The three concepts first shown. A was picked.</p>
-  <div class="glance">
-    <a href="#a"><div class="split"><div class="light"><img src="concepts/a-orbit.svg" width="112" height="112" alt=""></div><div class="dark"><img src="concepts/a-orbit.svg" width="112" height="112" alt=""></div></div><div class="label">A · Orbit <span>a node in a network</span></div></a>
-    <a href="#b"><div class="split"><div class="light"><img src="concepts/b-mesh.svg" width="112" height="112" alt=""></div><div class="dark"><img src="concepts/b-mesh.svg" width="112" height="112" alt=""></div></div><div class="label">B · Peers <span>linked to two peers</span></div></a>
-    <a href="#c"><div class="split"><div class="light"><img src="concepts/c-beacon.svg" width="112" height="112" alt=""></div><div class="dark"><img src="concepts/c-beacon.svg" width="112" height="112" alt=""></div></div><div class="label">C · Beacon <span>online and reachable</span></div></a>
-  </div>
-
-  <!-- One section per concept. Each uses two files: the full drawing
-       (32 px and up) and a simplified 16-grid drawing (16–24 px, tray). -->
-  <section class="concept" id="a" data-full="concepts/a-orbit.svg" data-small="concepts/a-orbit-16.svg">
-    <header><span class="tag">A</span><h2>Orbit</h2>
-      <p>The penguin stands inside a tilted orbit, with one peer riding the ring: a node in a
-        network, or a tiny planet. The ring passes behind its head and in front of its belly. The
-        strongest silhouette of the three.</p></header>
-  </section>
-
-  <section class="concept" id="b" data-full="concepts/b-mesh.svg" data-small="concepts/b-mesh-16.svg">
-    <header><span class="tag">B</span><h2>Peers</h2>
-      <p>The penguin links out to two peers, like the familiar network/share glyph. The most
-        literal "network" reading; calm and technical.</p></header>
-  </section>
-
-  <section class="concept" id="c" data-full="concepts/c-beacon.svg" data-small="concepts/c-beacon-16.svg">
-    <header><span class="tag">C</span><h2>Beacon</h2>
-      <p>The penguin between two signal arcs: "I'm online and reachable". Symmetric, and the
-        easiest to read at 16&nbsp;px.</p></header>
-  </section>
-
-  <footer><p>Unofficial; not affiliated with ZeroTier, Inc. All concepts are original artwork for
-    Penguintier (MIT).</p></footer>
+  <footer><p>Unofficial; not affiliated with ZeroTier, Inc. Original artwork for Penguintier (MIT).</p></footer>
 </main>
 
 <!-- Generic symbolic icons for the mock bars (not part of Penguintier). -->
@@ -169,18 +109,13 @@
 </template>
 
 <script>
-  // Fill in each concept section from its two files, so all three get the
-  // same layout. (Plain DOM code; no libraries.)
-  const sizes = [16, 22, 24, 32, 48, 128, 256];
-  const pick = (el, size) => size <= 24 ? el.dataset.small : el.dataset.full;
+  // Builds the page from the real icon files. (Plain DOM code; no libraries.)
   const img = (src, size) => `<img src="${src}" width="${size}" height="${size}" alt="">`;
-  const ti = (src, size, state) => `<span class="ti ${state}">${img(src, size)}</span>`;
   const sym = document.getElementById('sym').innerHTML;
   const other = document.getElementById('other-tray').innerHTML;
 
-  // The final icon set, from the real files.
   {
-    const el = document.getElementById('final');
+    const el = document.getElementById('icons');
     const appSrc = (s) => `../icons/hicolor/${s}x${s}/apps/io.github.rasikhq.Penguintier.png`;
     const appSizes = [16, 22, 24, 32, 48, 64, 128, 256];
     const appLadder = (cls) => `<div class="ladder ${cls}">` + appSizes.map((s) =>
@@ -221,37 +156,6 @@
       ${panel('dark', color('online', 22))}${panel('dark', color('offline', 22))}${panel('dark', symbolic('online', 22, true))}`);
   }
 
-  for (const el of document.querySelectorAll('.concept:not(.final)')) {
-    const ladder = (cls) => `<div class="ladder ${cls}">` + sizes.map((s) =>
-      `<figure>${img(pick(el, s), s)}<figcaption>${s}</figcaption></figure>`).join('') + '</div>';
-
-    const statesBlock = (cls) => {
-      let html = `<div class="${cls}"><span></span><span class="head">online</span><span class="head">offline</span><span class="head">attention</span>`;
-      for (const s of [16, 22, 24]) {
-        html += `<span class="head">${s}</span>`;
-        for (const st of ['online', 'offline', 'attention']) html += `<span class="row">${ti(el.dataset.small, s, st)}</span>`;
-      }
-      return html + '</div>';
-    };
-
-    const gnome = (state) => `<div class="bar gnome"><span class="ws"><i></i><i></i><i></i></span>
-      <span class="clock">Oct 19  14:05</span><span class="spacer"></span>
-      <span class="tray">${other}${ti(el.dataset.small, 16, state)}</span>
-      <span class="status">${sym}</span></div>`;
-
-    const panel = (cls, size, state) => `<div class="bar panel ${cls}"><span class="launcher"></span>
-      <span class="task"></span><span class="task"></span><span class="spacer"></span>
-      <span class="tray">${other}${ti(el.dataset.small, size, state)}${sym}</span>
-      <span class="clock">14:05<br><small>10/19/26</small></span></div>`;
-
-    el.insertAdjacentHTML('beforeend', `
-      <h3>Sizes</h3>${ladder('light')}${ladder('dark')}
-      <h3>Tray states</h3><div class="states">${statesBlock('light')}${statesBlock('dark')}</div>
-      <h3>GNOME top bar (AppIndicator extension), 16 px</h3>${gnome('online')}${gnome('offline')}${gnome('attention')}
-      <h3>Desktop panels, 22 px (KDE, Cinnamon, XFCE)</h3>${panel('light', 22, 'online')}${panel('dark', 22, 'online')}${panel('dark', 22, 'attention')}
-      <p class="note">Offline and attention are mocked here with a grey filter and a badge; the final
-        icons get their own drawn files, plus monochrome "symbolic" versions.</p>`);
-  }
 </script>
 </body>
 </html>

@@ -13,7 +13,6 @@ icon is deliberately not the ZeroTier logo.
 | `tray/penguintier-{online,offline,attention}.png` | Generated 64 px PNGs of the tray icons. |
 | `tray/penguintier-{online,offline,attention}-symbolic.svg` | One-color tray icons that GNOME and GTK recolor to match the panel. |
 | `brand/preview.html` | Preview page: every size, on light and dark, in mock panels. |
-| `brand/concepts/` | The three first concepts; "Orbit" (A) was picked. |
 | `render-icons.py` | Rebuilds every PNG from the SVGs. |
 
 ## Changing an icon
