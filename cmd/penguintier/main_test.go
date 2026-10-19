@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rasikhq/penguintier/internal/dnssetup"
 	"github.com/rasikhq/penguintier/internal/doctor"
 	"github.com/rasikhq/penguintier/internal/platform/autostart"
 	"github.com/rasikhq/penguintier/internal/tray"
@@ -247,8 +248,9 @@ func TestAuthorize(t *testing.T) {
 	bin, libexec, home := t.TempDir(), t.TempDir(), t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv(tray.EnvLibexecDir, libexec)
-	// Only our fake pkexec is on PATH (plus the shell itself).
-	t.Setenv("PATH", bin+":/usr/bin:/bin")
+	// Only our fake programs are on PATH, so a missing fake can never fall
+	// through to the real program. (The scripts name /bin/sh in full.)
+	t.Setenv("PATH", bin)
 	writeScript(t, libexec, tokenHelper, `echo abcdefghijklmnopqrstuvwx`)
 	// The fake pkexec exits with $FAKE_PKEXEC_EXIT, or runs the helper.
 	writeScript(t, bin, "pkexec", `if [ -n "$FAKE_PKEXEC_EXIT" ]; then echo "fake pkexec message" >&2; exit "$FAKE_PKEXEC_EXIT"; fi; exec "$@"`)
@@ -309,29 +311,105 @@ func TestAuthorize(t *testing.T) {
 }
 
 // TestConfirm: zenity's answer decides, kdialog is the fallback, and
-// without either the user gets the manual command.
+// without either nothing changes.
 func TestConfirm(t *testing.T) {
 	bin := t.TempDir()
-	t.Setenv("PATH", bin+":/usr/bin:/bin")
+	t.Setenv("PATH", bin) // only the fakes: never the real zenity or pkexec
 
 	writeScript(t, bin, "zenity", "exit 0")
-	if yes, err := confirm(t.Context()); !yes || err != nil {
-		t.Errorf("zenity OK: %t, %v", yes, err)
+	if yes, err := confirm(t.Context(), "Switch?"); !yes || err != nil {
+		t.Errorf("zenity Switch: %t, %v", yes, err)
 	}
 	writeScript(t, bin, "zenity", "exit 1")
-	if yes, err := confirm(t.Context()); yes || err != nil {
+	if yes, err := confirm(t.Context(), "Switch?"); yes || err != nil {
 		t.Errorf("zenity Cancel: %t, %v", yes, err)
 	}
 	// zenity can't open a window (exit 255): kdialog asks instead.
 	writeScript(t, bin, "zenity", "exit 255")
 	writeScript(t, bin, "kdialog", "exit 0")
-	if yes, err := confirm(t.Context()); !yes || err != nil {
+	if yes, err := confirm(t.Context(), "Switch?"); !yes || err != nil {
 		t.Errorf("kdialog fallback: %t, %v", yes, err)
 	}
 
 	t.Setenv("PATH", t.TempDir())
-	if _, err := confirm(t.Context()); err == nil || !strings.Contains(err.Error(), "systemd-resolved") {
+	if _, err := confirm(t.Context(), "Switch?"); err == nil || !strings.Contains(err.Error(), "nothing was changed") {
 		t.Errorf("no dialog program: %v", err)
+	}
+}
+
+// TestConfirmText: the question names every file it backs up, the check,
+// and the way back.
+func TestConfirmText(t *testing.T) {
+	text := confirmText("deb.debian.org")
+	for _, want := range []string{"/etc/resolv.conf", "/etc/nsswitch.conf", dnssetup.BackupDir, "deb.debian.org", "undo everything by itself", dnssetup.HelperPath + " undo", "keep your own copy"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("the question lacks %q:\n%s", want, text)
+		}
+	}
+}
+
+// TestEnableDNSRefused: on an unsupported setup nothing runs; a dialog
+// explains why, or, without one, the error does.
+func TestEnableDNSRefused(t *testing.T) {
+	bin := t.TempDir()
+	t.Setenv("PATH", bin) // only the fakes: never the real zenity or pkexec
+	// pkexec must never run: it would fail the test by leaving a mark.
+	writeScript(t, bin, "pkexec", "/usr/bin/touch "+filepath.Join(bin, "pkexec-ran"))
+	gatherDNSFacts = func(context.Context) dnssetup.Facts {
+		return dnssetup.Facts{OSFamily: "fedora", OSName: "Fedora Linux 42"}
+	}
+	t.Cleanup(func() {
+		gatherDNSFacts = func(ctx context.Context) dnssetup.Facts { return dnssetup.Gather(ctx, dnssetup.Env{}) }
+	})
+
+	writeScript(t, bin, "zenity", `case "$*" in *--warning*"Fedora Linux 42"*) exit 0;; *) exit 9;; esac`)
+	if err := enableDNS(t.Context()); !errors.Is(err, tray.ErrCancelled) {
+		t.Errorf("with a dialog: %v, want ErrCancelled (the dialog explained it)", err)
+	}
+
+	if err := os.Remove(filepath.Join(bin, "zenity")); err != nil {
+		t.Fatal(err)
+	}
+	if err := enableDNS(t.Context()); err == nil || !strings.Contains(err.Error(), "changed nothing") {
+		t.Errorf("without a dialog: %v, want the explanation", err)
+	}
+	if _, err := os.Stat(filepath.Join(bin, "pkexec-ran")); err == nil {
+		t.Error("pkexec ran on an unsupported setup")
+	}
+}
+
+func TestHelperOutcome(t *testing.T) {
+	result := func(outcome, msg string) string {
+		return "progress\n{\"result\":\"" + outcome + "\",\"message\":\"" + msg + "\"}\n"
+	}
+	tests := []struct {
+		name      string
+		code      int
+		stdout    string
+		wantNil   bool
+		wantErr   error
+		wantInMsg string
+	}{
+		{name: "enabled", code: 0, stdout: result("enabled", "DNS support is on"), wantNil: true},
+		{name: "prompt dismissed", code: 126, wantErr: tray.ErrCancelled},
+		{name: "not authorized", code: 127, wantInMsg: "Nothing was changed"},
+		{name: "rolled back", code: 1, stdout: result("rolled-back", "Everything was put back as it was"), wantInMsg: "put back as it was"},
+		{name: "refused", code: 3, stdout: result("refused", "changed nothing"), wantInMsg: "changed nothing"},
+		{name: "undo failed", code: 4, stdout: result("failed", "To finish by hand: sudo dpkg --purge"), wantInMsg: "To finish by hand"},
+		{name: "killed", code: 137, stdout: "progress\n", wantInMsg: "stopped unexpectedly (exit code 137)"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := helperOutcome(tt.code, tt.stdout)
+			switch {
+			case tt.wantNil && err != nil:
+				t.Errorf("err = %v, want nil", err)
+			case tt.wantErr != nil && !errors.Is(err, tt.wantErr):
+				t.Errorf("err = %v, want %v", err, tt.wantErr)
+			case tt.wantInMsg != "" && (err == nil || !strings.Contains(err.Error(), tt.wantInMsg)):
+				t.Errorf("err = %v, want it to contain %q", err, tt.wantInMsg)
+			}
+		})
 	}
 }
 

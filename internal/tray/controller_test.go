@@ -626,7 +626,7 @@ func TestEnableDNS(t *testing.T) {
 			env.hooks.enableDNSErr = tt.err
 			env.c.handleClick(ctx, "enable-dns")
 			env.c.refresh(ctx)
-			if row := env.shown(t, "enable-dns"); row.Label != "Installing systemd-resolved…" || !row.Disabled {
+			if row := env.shown(t, "enable-dns"); row.Label != "Switching DNS to systemd-resolved…" || !row.Disabled {
 				t.Errorf("while installing: %q disabled=%t", row.Label, row.Disabled)
 			}
 			env.c.handleClick(ctx, "enable-dns") // disabled: does nothing

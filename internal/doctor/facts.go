@@ -14,6 +14,7 @@ import (
 
 	"github.com/godbus/dbus/v5"
 
+	"github.com/rasikhq/penguintier/internal/dnssetup"
 	"github.com/rasikhq/penguintier/internal/dnsstatus"
 	"github.com/rasikhq/penguintier/internal/platform/watcher"
 	"github.com/rasikhq/penguintier/internal/ztapi"
@@ -73,6 +74,13 @@ type Facts struct {
 	PathUnit     dnsstatus.UnitState // penguintier-dnsd.path
 	UnitErr      error
 	DNS          map[ztapi.NetworkID]dnsstatus.State
+
+	// "Enable DNS support…": whether this setup is supported (only read
+	// while systemd-resolved is not running), and the last switch's
+	// backup (nil when there was none).
+	SetupVerdict *dnssetup.Verdict
+	Switch       *dnssetup.Manifest
+	SwitchErr    error
 }
 
 // ClipboardTool is one clipboard program and whether it can be used.
@@ -283,5 +291,10 @@ func gatherDNS(ctx context.Context, f *Facts) {
 	f.UnitErr = errors.Join(errs...)
 	if f.NetworksErr == nil && len(f.Networks) > 0 {
 		f.DNS = probe.Read(ctx, f.Networks)
+	}
+	f.Switch, f.SwitchErr = dnssetup.Store{}.Load()
+	if !f.Resolved {
+		v := dnssetup.Check(dnssetup.Gather(ctx, dnssetup.Env{}))
+		f.SetupVerdict = &v
 	}
 }

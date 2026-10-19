@@ -235,8 +235,9 @@ func (c *controller) handleEnableDNSResult(ctx context.Context, err error) {
 	default:
 		c.notify(ctx, notify.Notification{
 			Summary: "DNS support is on",
-			Body: "systemd-resolved is installed. ZeroTier networks with “Allow DNS Configuration” " +
-				"now get their DNS settings; each network's DNS row shows the status.",
+			Body: "This computer now uses systemd-resolved, and names resolve. ZeroTier networks with " +
+				"“Allow DNS Configuration” get their DNS settings; each network's DNS row shows the status. " +
+				"Your previous files are backed up; “penguintier doctor” shows how to switch back.",
 		})
 	}
 }

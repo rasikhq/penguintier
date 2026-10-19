@@ -186,12 +186,12 @@ func buildOnline(vm ViewModel) []Node {
 	if vm.OfferDNS || vm.EnablingDNS {
 		enable := Node{
 			Key: "enable-dns", Label: "Enable DNS support…",
-			Tooltip: "Install systemd-resolved, so ZeroTier networks can set DNS",
+			Tooltip: "Switch this computer's DNS to systemd-resolved, so ZeroTier networks can set DNS",
 			Action:  Action{Kind: ActEnableDNS},
 		}
 		if vm.EnablingDNS {
 			// Same key and action, so the entry changes in place.
-			enable.Label, enable.Disabled = "Installing systemd-resolved…", true
+			enable.Label, enable.Disabled = "Switching DNS to systemd-resolved…", true
 		}
 		nodes = append(nodes, separator("sep/dns"), enable)
 	}

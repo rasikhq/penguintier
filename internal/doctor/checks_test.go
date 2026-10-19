@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rasikhq/penguintier/internal/dnssetup"
 	"github.com/rasikhq/penguintier/internal/dnsstatus"
 	"github.com/rasikhq/penguintier/internal/platform/watcher"
 	"github.com/rasikhq/penguintier/internal/ztapi"
@@ -166,24 +167,41 @@ func TestEvaluate(t *testing.T) {
 		{name: "no pkexec", change: func(f *Facts) { f.Pkexec = "" }, id: "polkit", wantStatus: Warn, wantFix: ManualAuthorizeCommand},
 		{name: "no polkit agent", change: func(f *Facts) { f.PolkitAgent = "" }, id: "polkit", wantStatus: Warn, wantFix: ManualAuthorizeCommand},
 		{
-			name: "no resolved, a network asks for DNS",
+			name: "no resolved, a network asks for DNS, supported setup",
 			change: func(f *Facts) {
 				f.Resolved, f.ResolvedUnit = false, dnsstatus.UnitState{LoadState: "not-found"}
 				f.DNS["c0ffee1234000001"] = dnsstatus.WaitingForResolved
+				f.SetupVerdict = &dnssetup.Verdict{OK: true}
 			},
 			id:         "dns.resolved",
 			wantStatus: Warn,
-			wantFix:    "sudo apt install systemd-resolved",
+			wantFix:    "undoes the switch by itself",
 		},
 		{
-			name: "resolved installed but stopped",
+			name: "no resolved, unsupported setup",
 			change: func(f *Facts) {
-				f.Resolved, f.ResolvedUnit.ActiveState = false, "inactive"
+				f.Resolved = false
 				f.DNS["c0ffee1234000001"] = dnsstatus.WaitingForResolved
+				f.SetupVerdict = &dnssetup.Verdict{Problems: []string{"NetworkManager is not running."}}
 			},
 			id:         "dns.resolved",
 			wantStatus: Warn,
-			wantFix:    "systemctl enable --now systemd-resolved",
+			wantFix:    "NetworkManager is not running.",
+		},
+		{
+			name:       "unfinished DNS switch",
+			change:     func(f *Facts) { f.Switch = &dnssetup.Manifest{State: dnssetup.StateInProgress} },
+			id:         "dns.setup",
+			wantStatus: Fail,
+			wantFix:    dnssetup.HelperPath + " undo",
+			wantFailed: true,
+		},
+		{
+			name:       "DNS switched on",
+			change:     func(f *Facts) { f.Switch = &dnssetup.Manifest{State: dnssetup.StateEnabled} },
+			id:         "dns.setup",
+			wantStatus: Info,
+			wantFix:    "To switch back",
 		},
 		{
 			name: "no resolved, nobody needs it",
@@ -257,7 +275,7 @@ func TestCheckIDs(t *testing.T) {
 	want := []string{
 		"penguintier.version", "zerotier.service", "zerotier.token", "zerotier.auth",
 		"desktop.tray", "desktop.notifications", "desktop.clipboard", "polkit",
-		"dns.resolved", "dns.daemon", "dns.networks",
+		"dns.resolved", "dns.daemon", "dns.networks", "dns.setup",
 	}
 	r := Evaluate(healthy())
 	var got []string

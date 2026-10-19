@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/rasikhq/penguintier/internal/dnssetup"
 	"github.com/rasikhq/penguintier/internal/dnsstatus"
 	"github.com/rasikhq/penguintier/internal/platform/watcher"
 	"github.com/rasikhq/penguintier/internal/ztapi"
@@ -42,6 +43,7 @@ func Evaluate(f Facts) Report {
 			resolvedCheck(f),
 			daemonCheck(f),
 			dnsCheck(f),
+			setupCheck(f),
 		},
 		Networks: networks(f),
 	}
@@ -262,21 +264,17 @@ func resolvedCheck(f Facts) Check {
 	}
 	c.Status = Warn
 	c.Summary += ", so ZeroTier DNS settings can't be applied"
-	if f.ResolvedUnit.Installed() {
-		c.Fix = "Start it: sudo systemctl enable --now systemd-resolved"
+	if f.SetupVerdict != nil && f.SetupVerdict.OK {
+		c.Fix = "Click “Enable DNS support…” in the tray menu. It backs up the files it changes, " +
+			"and undoes the switch by itself if names stop resolving."
 		return c
 	}
-	install := "install the systemd-resolved package"
-	switch f.Desktop.OS.Family() {
-	case "debian":
-		install = "sudo apt install systemd-resolved"
-	case "fedora":
-		install = "sudo dnf install systemd-resolved"
-	case "suse":
-		install = "sudo zypper install systemd-network"
+	// Penguintier won't switch this setup itself: say why, and how by hand.
+	c.Fix = "Switching the computer's DNS to systemd-resolved by hand changes how every program looks up names; " +
+		"keep a copy of /etc/resolv.conf and /etc/nsswitch.conf first."
+	if f.SetupVerdict != nil {
+		c.Fix = f.SetupVerdict.Text()
 	}
-	c.Fix = "Click “Enable DNS support…” in the tray menu, or: " + install +
-		"\nThis switches the system's DNS to systemd-resolved."
 	return c
 }
 
@@ -334,6 +332,39 @@ func dnsCheck(f Facts) Check {
 		c.Status = Warn
 	default:
 		c.Status = OK
+	}
+	return c
+}
+
+// setupCheck reports the state of "Enable DNS support…"'s last switch.
+func setupCheck(f Facts) Check {
+	c := Check{ID: "dns.setup", Title: "DNS switch", Details: map[string]any{"backup": dnssetup.BackupDir}}
+	undo := "pkexec " + dnssetup.HelperPath + " undo"
+	switch {
+	case f.SwitchErr != nil:
+		c.Status, c.Summary = Warn, f.SwitchErr.Error()
+		return c
+	case f.Switch == nil:
+		c.Status, c.Summary = Info, "never used"
+		return c
+	}
+	m := f.Switch
+	c.Details["state"] = m.State
+	c.Details["updated"] = m.Updated
+	when := m.Updated.Local().Format("2 Jan 2006 15:04")
+	switch m.State {
+	case dnssetup.StateInProgress, dnssetup.StateUndoFailed:
+		c.Status = Fail
+		c.Summary = "the switch to systemd-resolved of " + when + " did not finish"
+		c.Fix = "Put the previous DNS files back: " + undo
+	case dnssetup.StateEnabled:
+		c.Status = Info
+		c.Summary = "switched to systemd-resolved on " + when + "; the previous files are in " + dnssetup.BackupDir
+		c.Fix = "To switch back: " + undo
+	case dnssetup.StateRolledBack:
+		c.Status, c.Summary = Info, "the switch of "+when+" was undone automatically: "+m.Message
+	default:
+		c.Status, c.Summary = Info, "switched back on "+when
 	}
 	return c
 }

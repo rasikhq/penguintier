@@ -52,7 +52,7 @@ Join New Network…  → join
     -----
     Disconnect  → disconnect c0ffee1234000002
 -----
-Installing systemd-resolved…  (disabled)  → enable-dns
+Switching DNS to systemd-resolved…  (disabled)  → enable-dns
 -----
 Saved Networks  (disabled)
 old_lab (c0ffee12340000aa) ▸
