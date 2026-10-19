@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && bun test && vite build",
+    "test": "bun test",
     "preview": "vite preview"
   },
   "dependencies": {

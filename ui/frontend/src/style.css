@@ -1,88 +1,230 @@
-/* Placeholder styles from P0. Phase P2 designs the real look. */
+/* Penguintier's small windows. The look follows GNOME's Adwaita style (the
+   most common Linux desktop) but uses no library: the system font, the
+   desktop's accent color (main.tsx sets --accent from Go), and light or
+   dark from prefers-color-scheme (ui/theme.go explains how dark mode
+   reaches the webview). */
+
 :root {
     color-scheme: light dark;
-    --bg: #ffffff;
-    --fg: #1f2937;
-    --muted: #6b7280;
-    --border: #d1d5db;
-    --accent: #2563eb;
-    --error: #b91c1c;
+    --accent: #3584e4; /* GNOME's default blue, replaced by the desktop's accent */
+    --window-bg: #fafafb;
+    --fg: rgb(0 0 6 / 80%);
+    --dim-fg: rgb(0 0 6 / 55%);
+    --field-bg: rgb(0 0 6 / 5%);
+    --button-bg: rgb(0 0 6 / 8%);
+    --button-hover: rgb(0 0 6 / 12%);
+    --button-active: rgb(0 0 6 / 20%);
+    --link: color-mix(in srgb, var(--accent) 85%, black);
+    --error: #c01c28;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg: #1f2937;
-        --fg: #f9fafb;
-        --muted: #9ca3af;
-        --border: #4b5563;
-        --accent: #60a5fa;
-        --error: #fca5a5;
+        --window-bg: #222226;
+        --fg: #ffffff;
+        --dim-fg: rgb(255 255 255 / 55%);
+        --field-bg: rgb(255 255 255 / 8%);
+        --button-bg: rgb(255 255 255 / 10%);
+        --button-hover: rgb(255 255 255 / 15%);
+        --button-active: rgb(255 255 255 / 30%);
+        --link: color-mix(in srgb, var(--accent) 60%, white);
+        --error: #ff7b63;
     }
+}
+
+* {
+    box-sizing: border-box;
 }
 
 html, body {
     margin: 0;
-    background: var(--bg);
+    height: 100%;
+    overflow: hidden; /* fixed-size windows: never show scrollbars */
+    background: var(--window-bg);
     color: var(--fg);
-    font-family: system-ui, -apple-system, "Segoe UI", "Cantarell", "Ubuntu", sans-serif;
+    font: 14.5px/1.4 system-ui, "Adwaita Sans", Cantarell, "Ubuntu", "Noto Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    /* Like a native window: labels can't be selected or dragged. */
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+
+#root, .window {
+    height: 100%;
 }
 
 .window {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding: 1.25rem;
+    padding: 18px 20px 20px;
 }
 
-h1 {
-    margin: 0 0 0.25rem;
-    font-size: 1.25rem;
-}
-
-p {
+h1, p {
     margin: 0;
 }
 
-.note {
-    color: var(--muted);
-    font-size: 0.875rem;
+.dim {
+    color: var(--dim-fg);
 }
 
-.error {
-    color: var(--error);
-    font-size: 0.875rem;
-    min-height: 1.25em; /* room for one line of error text */
+.mono {
+    font-family: ui-monospace, "Adwaita Mono", "DejaVu Sans Mono", "Ubuntu Mono", monospace;
+}
+
+/* Visible keyboard focus, only when using the keyboard. */
+:focus {
+    outline: none;
+}
+:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: 1px;
+}
+
+/* ---- Join ---- */
+
+.label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+}
+
+label {
+    font-weight: 700;
+}
+
+.counter {
+    font-size: 13px;
+    color: var(--dim-fg);
+    font-variant-numeric: tabular-nums;
 }
 
 input {
-    padding: 0.5rem;
-    font: inherit;
-    font-family: ui-monospace, monospace;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: transparent;
+    width: 100%;
+    height: 38px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 8px;
+    background: var(--field-bg);
     color: inherit;
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    caret-color: var(--accent);
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+input:focus {
+    outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+    outline-offset: -2px;
+}
+
+input::placeholder {
+    color: var(--dim-fg);
+    opacity: 0.6;
+}
+
+.help {
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--dim-fg);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.help.error {
+    color: var(--error);
 }
 
 .buttons {
     display: flex;
     justify-content: flex-end;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    gap: 8px;
+    margin-top: auto; /* pinned to the bottom of the window */
 }
 
 button {
-    padding: 0.4rem 1rem;
-    font: inherit;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: transparent;
+    min-width: 88px;
+    height: 34px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--button-bg);
     color: inherit;
+    font: inherit;
+    font-weight: 700;
+}
+
+button:hover {
+    background: var(--button-hover);
+}
+
+button:active {
+    background: var(--button-active);
+}
+
+button.suggested {
+    background: var(--accent);
+    color: #ffffff;
+}
+
+button.suggested:hover {
+    background: color-mix(in srgb, var(--accent) 90%, white);
+}
+
+button.suggested:active {
+    background: color-mix(in srgb, var(--accent) 85%, black);
+}
+
+button:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ---- About ---- */
+
+.about {
+    align-items: center;
+    text-align: center;
+    padding-top: 22px;
+}
+
+.app-icon {
+    margin-bottom: 10px;
+    -webkit-user-drag: none;
+}
+
+.about h1 {
+    font-size: 21px;
+    font-weight: 800;
+}
+
+.about .dim {
+    margin-top: 2px;
+    min-height: 1.4em; /* reserves the line while the version loads */
+}
+
+.tagline {
+    margin-top: 12px;
+}
+
+.about a {
+    margin-top: 4px;
+    color: var(--link);
+    text-decoration: none;
+    border-radius: 4px;
     cursor: pointer;
 }
 
-button[type="submit"] {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #ffffff;
+.about a:hover {
+    text-decoration: underline;
+}
+
+.about footer {
+    margin-top: auto;
+    font-size: 12.5px;
+    color: var(--dim-fg);
+    line-height: 1.5;
 }
