@@ -3,6 +3,7 @@ package instance
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/godbus/dbus/v5"
 
@@ -39,4 +40,29 @@ func TestClaim(t *testing.T) {
 		t.Fatalf("claim after Release: %v", err)
 	}
 	_ = third.Release()
+}
+
+// TestLost: when the bus goes away (the user logged out), Lost is closed.
+func TestLost(t *testing.T) {
+	bus := resolvedtest.StartTestBus(t)
+	conn, err := dbus.Connect(bus.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lock, err := claimOn(conn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-lock.Lost():
+		t.Fatal("Lost is closed while the bus runs")
+	default:
+	}
+
+	bus.Close() // the session bus stops
+	select {
+	case <-lock.Lost():
+	case <-time.After(5 * time.Second):
+		t.Fatal("Lost was not closed after the bus stopped")
+	}
 }

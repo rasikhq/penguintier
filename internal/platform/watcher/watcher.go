@@ -18,8 +18,11 @@ const (
 	watcherPath   = dbus.ObjectPath("/StatusNotifierWatcher")
 	propertiesGet = "org.freedesktop.DBus.Properties.Get"
 
-	shellExtensionsName  = "org.gnome.Shell.Extensions"
-	shellExtensionsPath  = dbus.ObjectPath("/org/gnome/Shell/Extensions")
+	// GNOME Shell itself answers extension questions, on its own bus name.
+	// (There is also a bus name "org.gnome.Shell.Extensions", but that is
+	// a helper for the Extensions app that only runs on demand.)
+	shellName            = "org.gnome.Shell"
+	shellPath            = dbus.ObjectPath("/org/gnome/Shell")
 	shellExtensionsIface = "org.gnome.Shell.Extensions"
 )
 
@@ -144,7 +147,7 @@ func CheckExtension(ctx context.Context, conn *dbus.Conn) Extension {
 		// GetExtensionInfo returns the extension's metadata as a map, or
 		// an empty map when GNOME Shell doesn't know it.
 		var info map[string]dbus.Variant
-		err := conn.Object(shellExtensionsName, shellExtensionsPath).CallWithContext(ctx,
+		err := conn.Object(shellName, shellPath).CallWithContext(ctx,
 			shellExtensionsIface+".GetExtensionInfo", dbus.FlagNoAutoStart, uuid).Store(&info)
 		if err == nil && len(info) > 0 {
 			ext.Loaded = true

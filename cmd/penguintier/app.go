@@ -95,11 +95,25 @@ func runTray(ctx context.Context, autostartRun bool) error {
 		autoStartAtLogin: version != "dev",
 	}
 
-	// 5. Tell the user once per login if no tray host shows the icon. The
-	// goroutine ends with the tray (trayCtx is cancelled when runTray
-	// returns).
+	// trayCtx is cancelled when runTray returns, or earlier when the
+	// session bus goes away (step 5), which quits the tray.
 	trayCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
+
+	// 5. Quit with the login. When the user logs out, the session bus
+	// stops; a tray left running would have no icon and no menu, and the
+	// next login starts a fresh one.
+	go func() {
+		select {
+		case <-lock.Lost():
+			slog.Info("the session bus went away (logged out?); quitting")
+			cancel()
+		case <-trayCtx.Done():
+		}
+	}()
+
+	// 6. Tell the user once per login if no tray host shows the icon. The
+	// goroutine ends with the tray.
 	go noticeMissingTrayHost(trayCtx)
 
 	cfg := tray.Config{Version: version, Hooks: hooks, PromptAuthorize: prompt}
@@ -151,13 +165,16 @@ func notifyAlreadyRunning(ctx context.Context) {
 // grace period, then shows one notification with fix steps for this
 // desktop. It shows it at most once per login (watcher.NoticeShown).
 func noticeMissingTrayHost(ctx context.Context) {
-	if watcher.NoticeShown() {
-		return
-	}
 	// dbus.SessionBus is the connection the tray icon library also uses;
 	// it must not be closed.
 	conn, err := dbus.SessionBus()
 	if err != nil {
+		return
+	}
+	keyCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	login := watcher.LoginKey(keyCtx, conn)
+	cancel()
+	if watcher.NoticeShown(login) {
 		return
 	}
 	ready := func() bool {
@@ -189,7 +206,7 @@ func noticeMissingTrayHost(ctx context.Context) {
 		slog.Warn("cannot show a notification", "err", err)
 		return
 	}
-	if err := watcher.RememberNoticeShown(); err != nil {
+	if err := watcher.RememberNoticeShown(login); err != nil {
 		slog.Warn("cannot remember the tray notice", "err", err)
 	}
 }

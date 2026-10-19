@@ -160,14 +160,23 @@ Rules:
 - **Single instance:** the tray owns the session bus name
   `io.github.rasikhq.Penguintier` (`DoNotQueue`). A second launch shows an
   "already running" notification (none with `--autostart`) and exits 0.
+  The tray quits when its session bus connection is lost (the user logged
+  out), so no tray without an icon is left running into the next login.
 - **Missing tray host:** when nothing has owned
   `org.kde.StatusNotifierWatcher` with `IsStatusNotifierHostRegistered`
   true for 10 seconds, the tray shows one notification with fix steps for
   the desktop (`$XDG_CURRENT_DESKTOP`) and, on GNOME, the distribution
-  (`/etc/os-release`) and the AppIndicator extension's state. At most once
-  per login: `$XDG_RUNTIME_DIR/penguintier/no-tray-host-notice` remembers
-  it. The extension's UUID is `ubuntu-appindicators@ubuntu.com` on Debian
-  and Ubuntu, `appindicatorsupport@rgcjonas.gmail.com` elsewhere.
+  (`/etc/os-release`) and the AppIndicator extension's state, as GNOME
+  Shell reports it (`org.gnome.Shell.Extensions.GetExtensionInfo` on the
+  bus name `org.gnome.Shell`). At most once per login:
+  `$XDG_RUNTIME_DIR/penguintier/no-tray-host-notice` holds the key of the
+  login it was shown in, logind's graphical session ID
+  (`login1:<id>`, from `User.Display` of
+  `/org/freedesktop/login1/user/self`), or else the session bus's ID
+  (`bus:<id>`). The folder alone is not enough: it outlives a logout while
+  any of the user's processes run. The extension's UUID is
+  `ubuntu-appindicators@ubuntu.com` on Debian and Ubuntu,
+  `appindicatorsupport@rgcjonas.gmail.com` elsewhere.
 - **DNS row:** each network's submenu has a read-only "DNS: …" row
   (`internal/dnsstatus`). States, also used by `doctor --json`:
   `applied`, `waiting-for-resolved`, `daemon-not-running`, `link-managed`,

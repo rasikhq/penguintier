@@ -585,7 +585,8 @@ podman exec pt-e2e mount --make-rshared /
   resolved" to "applied", "managed" and back. Without a qualifying
   network the probe never connects.
 - `internal/platform/instance`: a second claim of the D-Bus name is
-  refused, and works again after `Release`.
+  refused, and works again after `Release`; `Lost` is closed when the bus
+  stops (as at logout).
 - `internal/platform/autostart`: write/remove, mode 0644, no leftover
   temporary files, `Hidden=true` and `X-GNOME-Autostart-enabled=false`
   count as off.
@@ -595,7 +596,8 @@ podman exec pt-e2e mount --make-rshared /
   extension folders; the fix steps for GNOME on each distribution family
   and each extension state, and for the other desktops; `WaitMissing`
   timing (missing, present, a host that blinks back); the once-per-login
-  marker.
+  marker and its login key (a fake logind's display session, else the
+  bus's ID).
 - `internal/platform/packagekit`: a fake PackageKit on a private bus:
   `Resolve` then `InstallPackages` with the expected filter, flags and
   hint; an installed package is not installed again; not found, prompt
@@ -689,7 +691,9 @@ are all in place. Quit any running Penguintier first.
    `gnome-extensions enable ...` command. Enable it again: the icon comes
    back by itself. Disable it again: no second notification in this login
    (`rm $XDG_RUNTIME_DIR/penguintier/no-tray-host-notice` to see it
-   again).
+   again). After logging out and back in, disabling it shows the
+   notification again, and `pgrep -a -x penguintier` lists one tray only
+   (the one from before the logout has quit).
 5. **Doctor.** `penguintier doctor` prints one line per check and exits 0
    on this machine; `penguintier doctor --json | jq .ok` prints `true`.
    With the token moved aside, `doctor` exits 1 and prints the manual

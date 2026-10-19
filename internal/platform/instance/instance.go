@@ -57,6 +57,15 @@ func claimOn(conn *dbus.Conn) (*Lock, error) {
 	}
 }
 
+// Lost returns a channel that is closed when the connection to the session
+// bus is lost. That happens when the user logs out: the session bus stops,
+// and a tray left running would have no icon and no menu, so it should
+// quit. (A channel that is closed, never sent on, is Go's usual "this
+// happened" signal; ctx.Done() works the same way.)
+func (l *Lock) Lost() <-chan struct{} {
+	return l.conn.Context().Done()
+}
+
 // Release gives the name back, so another copy can start.
 func (l *Lock) Release() error {
 	// Closing the connection alone would free the name too, but the bus

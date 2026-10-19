@@ -160,22 +160,62 @@ func TestWaitMissing(t *testing.T) {
 
 func TestNoticeMarker(t *testing.T) {
 	t.Setenv("XDG_RUNTIME_DIR", t.TempDir())
-	if NoticeShown() {
+	if NoticeShown("login1:20") {
 		t.Fatal("NoticeShown before RememberNoticeShown")
 	}
-	if err := RememberNoticeShown(); err != nil {
+	if err := RememberNoticeShown("login1:20"); err != nil {
 		t.Fatal(err)
 	}
-	if !NoticeShown() {
-		t.Error("NoticeShown = false after RememberNoticeShown")
+	if !NoticeShown("login1:20") {
+		t.Error("NoticeShown = false in the same login")
 	}
-	if err := RememberNoticeShown(); err != nil {
-		t.Errorf("second RememberNoticeShown: %v", err)
+	if NoticeShown("login1:21") {
+		t.Error("NoticeShown = true in the next login")
+	}
+	if NoticeShown("") || RememberNoticeShown("") == nil {
+		t.Error("an empty login key should never count as shown")
 	}
 
 	t.Setenv("XDG_RUNTIME_DIR", "")
-	if NoticeShown() || RememberNoticeShown() == nil {
+	if NoticeShown("login1:20") || RememberNoticeShown("login1:20") == nil {
 		t.Error("without XDG_RUNTIME_DIR the marker should be unavailable")
+	}
+}
+
+// TestLoginKey: logind's display session when there is one, else the
+// session bus's ID.
+func TestLoginKey(t *testing.T) {
+	bus := resolvedtest.StartTestBus(t) // plays both the session and the system bus
+	client, err := dbus.Connect(bus.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = client.Close() })
+
+	// No logind on this bus: the bus's own ID.
+	key := loginKey(t.Context(), client, bus.Address)
+	if !strings.HasPrefix(key, "bus:") || len(key) <= len("bus:") {
+		t.Errorf("without logind: key %q, want bus:<id>", key)
+	}
+
+	// A fake logind whose user has graphical session 20.
+	logind, err := dbus.Connect(bus.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = logind.Close() })
+	display := struct {
+		ID   string
+		Path dbus.ObjectPath
+	}{"20", "/org/freedesktop/login1/session/_320"}
+	if _, err := prop.Export(logind, login1UserSelf, prop.Map{login1UserIface: {"Display": {Value: display}}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := logind.RequestName(login1Name, dbus.NameFlagDoNotQueue); err != nil {
+		t.Fatal(err)
+	}
+	if key := loginKey(t.Context(), client, bus.Address); key != "login1:20" {
+		t.Errorf("with logind: key %q, want login1:20", key)
 	}
 }
 
@@ -270,10 +310,10 @@ func TestCheckExtension(t *testing.T) {
 	shell := &fakeShell{infos: map[string]map[string]dbus.Variant{
 		UbuntuExtensionUUID: {"enabled": dbus.MakeVariant(false), "state": dbus.MakeVariant(float64(2))},
 	}}
-	if err := shellConn.Export(shell, shellExtensionsPath, shellExtensionsIface); err != nil {
+	if err := shellConn.Export(shell, shellPath, shellExtensionsIface); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := shellConn.RequestName(shellExtensionsName, dbus.NameFlagDoNotQueue); err != nil {
+	if _, err := shellConn.RequestName(shellName, dbus.NameFlagDoNotQueue); err != nil {
 		t.Fatal(err)
 	}
 	ext := CheckExtension(t.Context(), client)
