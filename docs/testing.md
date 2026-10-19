@@ -932,15 +932,198 @@ systemctl status penguintier-dnsd.path
 path unit again (see `packaging/scripts/preinstall.sh` for why that needs a
 marker file).
 
-## P7: Manual matrix
+## P7: Release
 
-TODO(P7): VMs (GNOME Boxes or quickemu, with snapshots):
+### Release checklist
 
-- Ubuntu 24.04 GNOME: primary, DNS end-to-end.
-- Fedora GNOME: no tray by default, SELinux.
-- Fedora KDE: tooltip.
-- Debian 13 GNOME: the "Enable DNS support…" path.
-- Debian 12 XFCE: X11.
-- Mint 22 Cinnamon.
-- Fedora Sway: no polkit agent.
-- Pop!_OS COSMIC.
+Before tagging a release (`vX.Y.Z`):
+
+1. Every PR for the release is merged, and CI (`ci.yml`, `package.yml`)
+   is green on `master`.
+2. The files that describe the release say the same version and date:
+   - `CHANGELOG.md`: a `## [X.Y.Z] - <date>` section (release.yml uses it
+     as the release notes, and stops if it is missing), plus the link at
+     the bottom.
+   - `packaging/metainfo/io.github.rasikhq.Penguintier.metainfo.xml`: a
+     `<release version="X.Y.Z" date="<date>">` entry, newest first.
+   - `packaging/man/penguintier.1`: the date in `.TH`, if the page changed.
+
+   Nothing else holds the version: the tag sets it (see "Version" in
+   architecture.md).
+3. `make lint test build ui-build package` passes on a clean checkout of
+   `master`.
+4. The test matrix below has a result for each setup, and nothing it found
+   is still open.
+5. The README's screenshots match the current menu, and its links work.
+6. Tag and push (this starts release.yml, which publishes the release):
+
+   ```
+   git tag -a vX.Y.Z -m "Penguintier X.Y.Z"
+   git push origin vX.Y.Z
+   ```
+
+7. Check the published release: the .deb, the .rpm and `SHA256SUMS` are
+   attached, `sha256sum --check --ignore-missing SHA256SUMS` passes for
+   both, the notes are the CHANGELOG section, and installing the .deb from
+   the release page in one VM works.
+
+To build the release packages locally without a tag on the real repo,
+tag a throwaway clone (packages named `penguintier_0.1.0_amd64.deb` and
+`penguintier-0.1.0-1.x86_64.rpm`, `--version` prints `penguintier 0.1.0`):
+
+```
+git clone -q . /tmp/pt-release && cd /tmp/pt-release
+git tag v0.1.0
+git remote set-url origin https://github.com/rasikhq/penguintier.git
+awk -v v=0.1.0 -f scripts/changelog-section.awk CHANGELOG.md > /tmp/release-notes.md
+env -u GITHUB_TOKEN ~/go/bin/goreleaser release --clean --skip=publish,announce --release-notes /tmp/release-notes.md
+```
+
+The clone's `origin` points at the local folder; GoReleaser wants the
+GitHub address to name the release, but `--skip=publish,announce` means
+nothing is uploaded and no token is needed. Delete `/tmp/pt-release`
+afterwards.
+
+### Test matrix
+
+What each setup checks, on top of the common checklist below. CI's
+install smoke test (P6) already covers installing, upgrading and removing
+the packages in `debian:12`, `debian:13`, `ubuntu:24.04` and
+`fedora:latest` containers on every PR, so the VMs focus on the desktop.
+
+| Setup | Why it is in the matrix |
+|---|---|
+| Ubuntu 24.04 GNOME | The main target. AppIndicator extension preinstalled; systemd-resolved runs. DNS end to end with the self-test network. |
+| Fedora GNOME (current) | No tray until the extension is installed (the notice shows the `dnf` command and the upstream UUID); SELinux enforcing; rpm. |
+| Fedora KDE (current) | Tooltips; spec-style underscore escaping; KDE's notification and polkit agent. |
+| Debian 13 GNOME (the dev machine) | "Enable DNS support…" on a real machine. |
+| Debian 12 Xfce | X11 (xclip), the oldest supported distro, no systemd-resolved: "Enable DNS support…" on Debian 12. |
+| Linux Mint 22 Cinnamon | The XApp status applet as tray host. |
+| Fedora Sway (current) | waybar's tray; possibly no polkit agent (the first-run prompt then fails, and `doctor` prints the manual command). |
+| Pop!_OS 24.04 COSMIC | COSMIC's status area applet. |
+
+#### Setting up the VMs (quickemu)
+
+VMs need hardware virtualization. If `/dev/kvm` doesn't exist, turn on
+"Intel Virtualization Technology" (VT-x; AMD: SVM) in the firmware setup
+(press F2 or Del while the computer starts), then:
+
+```
+ls -l /dev/kvm                    # must exist
+sudo adduser $USER kvm            # if it is crw-rw---- root kvm; then log out and back in
+sudo apt install quickemu         # Debian 13 has 4.9.7
+```
+
+One VM at a time with 4 GB of RAM fits a 16 GB machine; each disk grows
+to about 20–30 GB. Make a folder for them and fetch each image (`quickget
+<os>` alone lists the releases and editions it knows):
+
+```
+mkdir -p ~/vms && cd ~/vms
+quickget ubuntu 24.04
+quickget fedora <release> Workstation
+quickget fedora <release> KDE
+quickget fedora <release> Sway
+quickget debian 12 xfce
+quickget linuxmint 22.2 cinnamon
+quickget popos 24.04 intel
+```
+
+If quickget doesn't know a release (Pop!_OS 24.04 may be newer than
+quickemu 4.9.7), download the ISO yourself and write the config by hand,
+for example `popos-24.04.conf`:
+
+```
+guest_os="linux"
+disk_img="popos-24.04/disk.qcow2"
+iso="popos-24.04/pop-os_24.04_amd64_intel.iso"
+```
+
+Start a VM with `quickemu --vm ubuntu-24.04.conf`, install the system with
+the defaults, shut it down, and take a snapshot, so every test run can
+start from a clean system:
+
+```
+quickemu --vm ubuntu-24.04.conf --snapshot create clean
+quickemu --vm ubuntu-24.04.conf --snapshot apply clean    # back to the clean system (VM off)
+```
+
+To get the packages into a VM, serve them from the host. quickemu's
+default network reaches the host at 10.0.2.2:
+
+```
+make package build
+mkdir -p bin/vm && cp dist/*.deb dist/*.rpm bin/zt-mock scripts/zt-selftest-network.sh bin/vm/
+python3 -m http.server 8000 --directory bin/vm
+```
+
+In the VM: `curl -O http://10.0.2.2:8000/<file name>`. Stop the server
+with Ctrl+C when done.
+
+#### Common checklist (every setup)
+
+1. **Install.** ZeroTier first (`curl -s https://install.zerotier.com |
+   sudo bash`; `sudo zerotier-cli info` says ONLINE), then the package
+   (`sudo apt install ./penguintier_*_amd64.deb` or `sudo dnf install
+   ./penguintier-*.rpm`). `man penguintier` opens. Penguintier is in the
+   app menu with its icon.
+2. **Tray.** Start it from the app menu. The icon shows in the panel; a
+   left click opens the menu. Where there is no tray, one notification
+   with fix steps appears after about 10 s instead (follow them; the icon
+   then appears by itself).
+3. **Authorize.** The polkit prompt "Penguintier needs to read the
+   ZeroTier service's API token…" opens by itself. After the password, the
+   menu shows "My Address" and `ls -l ~/.zeroTierOneAuthToken` shows
+   `-rw-------`.
+4. **Menu.** Join the throwaway network `<your address>dead01` with Join
+   New Network… (the Join window has keyboard focus): "Joining…", then the
+   network. Toggle each check box (it stays toggled). Click "My Address"
+   and paste it somewhere. Disconnect → Saved Networks → Reconnect →
+   Disconnect → Forget. About opens the About window (light or dark like
+   the desktop).
+5. **Mock scenarios** (labels and the attention icon, without a real
+   network). Quit the tray first, then in one terminal run
+   `chmod +x zt-mock && ./zt-mock --scenario many-networks`, and in a
+   second one paste the two `export` lines it prints and run
+   `XDG_CONFIG_HOME=$(mktemp -d) penguintier --foreground`. `lab_01`,
+   `private_net` and `some_new_state` show their underscores; the icon is
+   "attention"; the tooltip (where the desktop shows tooltips) says "12
+   networks, 5 need attention". Ctrl+C both, then start the real tray
+   again.
+6. **Start at Login.** It is checked after the first run. Log out and in:
+   the icon comes back without a prompt. A second start from the app menu
+   shows "Penguintier is already running", still one icon.
+7. **Doctor.** `penguintier doctor` exits 0 with "No problems found" (or
+   only warnings that match the setup, such as no systemd-resolved).
+   Keep `penguintier doctor --json` with the results.
+8. **DNS.** Where systemd-resolved runs: `bash zt-selftest-network.sh`
+   (needs `curl` and `jq`), start the DNS server it names (see "End-to-end
+   test" in P4), and check Allow DNS Configuration in the test network's
+   submenu: the row says "DNS: applied" and `resolvectl query
+   host.pt.test` answers through the ZeroTier interface. Where it doesn't
+   (Debian), see "Enable DNS support…" in P5, then undo it with
+   `pkexec /usr/libexec/penguintier/penguintier-dns-helper undo`.
+   `bash zt-selftest-network.sh down` at the end.
+9. **Remove.** `sudo apt remove penguintier` (or `sudo dnf remove
+   penguintier`): no `penguintier` process is left, and `resolvectl
+   status` shows no DNS on the ZeroTier interface.
+
+On Fedora also: `sudo ausearch -m avc -ts recent` shows no denials for
+penguintier.
+
+#### Results
+
+Release candidate 0.1.0. "CI" = the container smoke test in
+`package.yml`; the VM rows are filled in as each setup is run.
+
+| Setup | Date | Package | Result | Notes |
+|---|---|---|---|---|
+| CI: debian:12, debian:13, ubuntu:24.04, fedora:latest (install, upgrade, remove, purge) | 2026-10-19 | 0.1.0 RC (this PR) | pass | Runs on every PR. |
+| Debian 13 GNOME 48 Wayland (dev machine) | 2026-10-19 | snapshot 9bf93c4 | pass | Every P5 manual step, including "Enable DNS support…" (see P5). Re-check with the RC package before tagging. |
+| Ubuntu 24.04 GNOME | | | not run | |
+| Fedora GNOME | | | not run | |
+| Fedora KDE | | | not run | |
+| Debian 12 Xfce | | | not run | |
+| Linux Mint 22 Cinnamon | | | not run | |
+| Fedora Sway | | | not run | |
+| Pop!_OS 24.04 COSMIC | | | not run | |
