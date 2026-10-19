@@ -14,7 +14,7 @@
 //     terminal.
 //   - hooks.go: what the tray menu asks of the desktop (tray.Hooks).
 //   - authorize.go: "Authorize Penguintier…" (pkexec + the token helper).
-//   - enabledns.go: "Enable DNS support…" (PackageKit).
+//   - enabledns.go: "Enable DNS support…" (penguintier-dns-helper).
 //   - state.go: state.json, what the tray remembers between runs.
 //   - doctor.go and deauthorize.go: the two subcommands.
 //
