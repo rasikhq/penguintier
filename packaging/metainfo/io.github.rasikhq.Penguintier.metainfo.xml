@@ -60,4 +60,18 @@
 
   <!-- No violence, ads or user-to-user chat: an empty rating means "all ages". -->
   <content_rating type="oars-1.1"/>
+
+  <!-- One entry per release, newest first (see CHANGELOG.md). -->
+  <releases>
+    <release version="0.1.0" date="2026-10-19">
+      <url type="details">https://github.com/rasikhq/penguintier/releases/tag/v0.1.0</url>
+      <description>
+        <p>
+          The first release: the tray menu of the official ZeroTier app,
+          DNS for ZeroTier networks through systemd-resolved, and
+          "Enable DNS support…" for Debian desktops without it.
+        </p>
+      </description>
+    </release>
+  </releases>
 </component>

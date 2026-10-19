@@ -47,7 +47,7 @@ UI_GO_TAGS := desktop,production,$(UI_TAGS)
 MOCK_ARGS ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help tools build test lint fmt vuln licenses third-party-licenses ui-dev ui-build run mock tray-mock live-test dev-install-helper package clean
+.PHONY: help tools build test lint fmt vuln licenses third-party-licenses man ui-dev ui-build run mock tray-mock live-test dev-install-helper package clean
 
 help: ## List the targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-20s %s\n", $$1, $$2}'
@@ -111,6 +111,14 @@ third-party-licenses: ## Write bin/THIRD_PARTY_LICENSES, which the packages inst
 	$(GO) run ./cmd/licensegen -o $(THIRD_PARTY_LICENSES) -goroot "$$($(GO) env GOROOT)" \
 		-npm ui/frontend bin/licenses/go-root.tsv bin/licenses/go-ui.tsv
 	@echo "Wrote $(THIRD_PARTY_LICENSES)"
+
+# Man pages are installed gzipped. -9: smallest file; -n: no file name or
+# time stamp inside, so the same page always gives the same .gz file.
+# GoReleaser runs this before it builds the packages, see .goreleaser.yaml.
+man: ## Write bin/penguintier.1.gz, the man page the packages install
+	mkdir -p bin
+	gzip -9 -n -c packaging/man/penguintier.1 > bin/penguintier.1.gz
+	@echo "Wrote bin/penguintier.1.gz (preview: man -l packaging/man/penguintier.1)"
 
 ui-dev: ## Open a UI window with hot reload (UI_SCREEN=join or about)
 	@test -x $(WAILS) || { echo "wails not found; run 'make tools'"; exit 1; }

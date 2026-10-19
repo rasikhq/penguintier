@@ -129,6 +129,7 @@ expected_files() {
 644 /usr/share/doc/penguintier/THIRD_PARTY_LICENSES
 644 /usr/share/doc/penguintier/README.md
 644 /usr/share/doc/penguintier/CHANGELOG.md
+644 /usr/share/man/man1/penguintier.1.gz
 EOF
 	if [ "$format" = deb ]; then
 		echo "644 /usr/share/doc/penguintier/copyright"
