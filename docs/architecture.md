@@ -173,6 +173,16 @@ The tray starts it on demand. It exits when its window closes.
 - Started by `penguintier-dnsd.path` once
   `/var/lib/zerotier-one/authtoken.secret` exists.
 - Exits on HTTP 401 so `Restart=on-failure` reloads the token credential.
+- The credential is named `zt-authtoken`
+  (`LoadCredential=zt-authtoken:/var/lib/zerotier-one/authtoken.secret`).
+- Remembers the links it changed in `/run/penguintier-dnsd/applied.json`
+  (its `RuntimeDirectory=`, mode 0700, kept across restarts until reboot).
+  Only the daemon can read it; other programs (the tray's DNS row,
+  `doctor`) read the link state from resolve1 and the unit state from
+  systemd instead.
+- To stop it, stop both units (`penguintier-dnsd.path` and
+  `penguintier-dnsd.service`); the path unit restarts a service stopped on
+  its own.
 
 ### Version
 
