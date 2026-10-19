@@ -2,11 +2,15 @@
 Type=Application
 Name=Penguintier
 GenericName=ZeroTier Tray
-Comment=Tray app for ZeroTier networks (unofficial)
+Comment=Unofficial tray app for ZeroTier networks
 Exec=penguintier
 Icon=io.github.rasikhq.Penguintier
 Terminal=false
 Categories=Network;
-Keywords=ZeroTier;VPN;Network;Tray;
+Keywords=ZeroTier;VPN;SD-WAN;network;tray;DNS;
+# The tray opens no window at start, so don't show a "starting" cursor.
 StartupNotify=false
+# The Join and About windows (penguintier-ui) use this WM class, so the
+# desktop shows them with this entry's name and icon.
 StartupWMClass=io.github.rasikhq.Penguintier
+X-GNOME-UsesNotifications=true
