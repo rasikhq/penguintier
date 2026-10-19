@@ -1,0 +1,37 @@
+# golangci-lint v2 configuration. `make lint` runs it; `make fmt` fixes
+# formatting. Docs: https://golangci-lint.run/docs/configuration/
+#
+# It covers the root module only. ui/ is a separate module and is checked by
+# its CI build.
+version: "2"
+
+linters:
+  # "standard" turns on errcheck, govet, ineffassign, staticcheck and unused.
+  default: standard
+  enable:
+    - bodyclose # HTTP response bodies are closed
+    - errorlint # errors are compared with errors.Is / errors.As, so wrapped errors still match
+    - gosec # common security mistakes (file modes, command injection, ...)
+    - misspell # spelling mistakes in comments and strings
+    - noctx # HTTP requests carry a context, so they can time out or be cancelled
+    - revive # style: doc comments on exported names, naming, error strings, ...
+    - unconvert # type conversions that do nothing
+  exclusions:
+    presets:
+      # Don't demand error checks on fmt.Print*, Close, os.Remove and similar.
+      - std-error-handling
+      - common-false-positives
+    rules:
+      # Tests may use fixed paths, weak file modes, etc.
+      - path: _test\.go
+        linters: [gosec]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      # Group this project's own imports after third-party ones.
+      local-prefixes:
+        - github.com/rasikhq/penguintier
