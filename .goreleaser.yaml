@@ -1,0 +1,210 @@
+# GoReleaser config: builds Penguintier's .deb and .rpm packages.
+# Reference: https://goreleaser.com/customization/
+#
+#   make package               snapshot packages into dist/, no upload
+#   release.yml (v* tag)       the same build, published as a GitHub Release
+#
+# How the binaries are built:
+#   - The Go programs (tray, DNS daemon, token helper) are static
+#     (CGO_ENABLED=0), so GoReleaser builds them itself.
+#   - penguintier-ui needs cgo + WebKitGTK. The "before" hook builds it with
+#     `make ui-build`, and nfpm packs the result like any other file (see
+#     "contents" below). Release builds run in a debian:12 container, so the
+#     UI only needs glibc 2.36 or newer.
+#
+# Only amd64 for now: an arm64 package would need penguintier-ui built on
+# an arm64 machine too (cgo can't easily cross-compile WebKitGTK).
+#
+# `{{ .Version }}` is the git tag without its "v" (tag v0.1.0 -> 0.1.0).
+version: 2
+
+project_name: penguintier
+
+before:
+  hooks:
+    - make ui-build VERSION={{ .Version }}
+
+# The three Go programs, all static (no cgo).
+#   ldflags: -s -w drop debug symbols (smaller binaries); -X sets main.version.
+#   mod_timestamp: use the commit time as file time, so the same commit
+#     always gives the same files.
+#   binary: the path inside the package, relative to nfpm's bindir (/usr),
+#     so these land in /usr/bin and /usr/libexec/penguintier.
+builds:
+  - id: penguintier
+    main: ./cmd/penguintier
+    binary: bin/penguintier
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  - id: penguintier-dnsd
+    main: ./cmd/penguintier-dnsd
+    binary: libexec/penguintier/penguintier-dnsd
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  - id: penguintier-token-helper
+    main: ./cmd/penguintier-token-helper
+    binary: libexec/penguintier/penguintier-token-helper
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64]
+    flags: [-trimpath]
+    ldflags: ["-s -w -X main.version={{ .Version }}"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+# We ship packages only, no .tar.gz of the bare binaries.
+archives:
+  - formats: [none]
+
+checksum:
+  name_template: SHA256SUMS
+  algorithm: sha256
+
+snapshot:
+  # Version of `make package` builds, e.g. 0.1.1~snapshot.c9a573b. The "~"
+  # makes deb and rpm sort it before the real 0.1.1.
+  version_template: "{{ incpatch .Version }}~snapshot.{{ .ShortCommit }}"
+
+nfpms:
+  - id: packages
+    package_name: penguintier
+    # penguintier_0.1.0_amd64.deb and penguintier-0.1.0-1.x86_64.rpm
+    file_name_template: "{{ .ConventionalFileName }}"
+    formats: [deb, rpm]
+    bindir: /usr
+    vendor: Rasikh Q.
+    maintainer: Rasikh Q. <rasikhqadeer98@gmail.com>
+    homepage: https://github.com/rasikhq/penguintier
+    license: MIT
+    section: net
+    priority: optional
+    description: |-
+      Unofficial tray app for ZeroTier networks
+      Penguintier puts your ZeroTier networks in the system tray, with the same
+      menu as the official ZeroTier app on macOS and Windows. It also makes
+      ZeroTier's "Allow DNS Configuration" option work on Linux, through
+      systemd-resolved. Not affiliated with ZeroTier, Inc.
+    mtime: "{{ .CommitDate }}"
+
+    # Package names differ between Debian/Ubuntu and Fedora, so the hard
+    # dependencies are set per format in "overrides" below.
+    recommends:
+      - zerotier-one # the ZeroTier service; Penguintier only talks to it
+      - wl-clipboard # copy to the clipboard on Wayland
+      - xclip # copy to the clipboard on X11
+    suggests:
+      # Only "Suggests": Debian installs Recommends by default, and
+      # installing systemd-resolved switches the whole system's DNS over to
+      # it. The tray offers "Enable DNS support…" for that instead.
+      - systemd-resolved
+    overrides:
+      deb:
+        dependencies:
+          # penguintier-ui links against glibc (the Go programs are static).
+          - libc6
+          - pkexec
+          - polkitd
+          - libwebkit2gtk-4.1-0
+          - libgtk-3-0
+      rpm:
+        dependencies:
+          - polkit
+          - webkit2gtk4.1
+          - gtk3
+
+    # See packaging/scripts/*.sh: each one handles both deb and rpm.
+    scripts:
+      preinstall: packaging/scripts/preinstall.sh
+      postinstall: packaging/scripts/postinstall.sh
+      preremove: packaging/scripts/preremove.sh
+      postremove: packaging/scripts/postremove.sh
+
+    # Everything except the Go binaries above. Modes are octal: 0755 =
+    # rwxr-xr-x (programs, directories), 0644 = rw-r--r-- (data files).
+    # Paths are in docs/architecture.md ("Install paths").
+    contents:
+      # Directories only this package uses, so rpm removes them again.
+      - dst: /usr/libexec/penguintier
+        type: dir
+        file_info: {mode: 0755}
+      - dst: /usr/share/doc/penguintier
+        type: dir
+        file_info: {mode: 0755}
+
+      # Built by the "before" hook (make ui-build).
+      - src: ui/build/bin/penguintier-ui
+        dst: /usr/libexec/penguintier/penguintier-ui
+        file_info: {mode: 0755}
+
+      # DNS daemon: systemd units, preset, system user, polkit rule.
+      - src: packaging/systemd/penguintier-dnsd.service
+        dst: /usr/lib/systemd/system/penguintier-dnsd.service
+        file_info: {mode: 0644}
+      - src: packaging/systemd/penguintier-dnsd.path
+        dst: /usr/lib/systemd/system/penguintier-dnsd.path
+        file_info: {mode: 0644}
+      - src: packaging/systemd/80-penguintier.preset
+        dst: /usr/lib/systemd/system-preset/80-penguintier.preset
+        file_info: {mode: 0644}
+      - src: packaging/sysusers/penguintier.conf
+        dst: /usr/lib/sysusers.d/penguintier.conf
+        file_info: {mode: 0644}
+      - src: packaging/polkit/50-penguintier-dnsd.rules
+        dst: /usr/share/polkit-1/rules.d/50-penguintier-dnsd.rules
+        file_info: {mode: 0644}
+
+      # Token helper: polkit action that lets pkexec run it.
+      - src: packaging/polkit/io.github.rasikhq.Penguintier.policy
+        dst: /usr/share/polkit-1/actions/io.github.rasikhq.Penguintier.policy
+        file_info: {mode: 0644}
+
+      # Desktop integration: launcher entry, app icons, software-center info.
+      - src: packaging/desktop/io.github.rasikhq.Penguintier.desktop
+        dst: /usr/share/applications/io.github.rasikhq.Penguintier.desktop
+        file_info: {mode: 0644}
+      # A glob: every size of the app icon, keeping the <size>/apps/ folders.
+      - src: assets/icons/hicolor/*/apps/io.github.rasikhq.Penguintier.*
+        dst: /usr/share/icons/hicolor
+        file_info: {mode: 0644}
+      - src: packaging/metainfo/io.github.rasikhq.Penguintier.metainfo.xml
+        dst: /usr/share/metainfo/io.github.rasikhq.Penguintier.metainfo.xml
+        file_info: {mode: 0644}
+
+      # License and docs.
+      - src: LICENSE
+        dst: /usr/share/doc/penguintier/LICENSE
+        file_info: {mode: 0644}
+      # Debian expects the license in a file named "copyright".
+      - src: LICENSE
+        dst: /usr/share/doc/penguintier/copyright
+        packager: deb
+        file_info: {mode: 0644}
+      - src: README.md
+        dst: /usr/share/doc/penguintier/README.md
+        file_info: {mode: 0644}
+      - src: CHANGELOG.md
+        dst: /usr/share/doc/penguintier/CHANGELOG.md
+        file_info: {mode: 0644}
+
+    rpm:
+      summary: Unofficial tray app for ZeroTier networks
+
+changelog:
+  # GitHub writes the release notes from the PRs merged since the previous
+  # tag ("What's Changed"), the same as its "Generate release notes" button.
+  use: github-native
+
+release:
+  # Tags like v0.2.0-rc.1 become a "pre-release" on GitHub.
+  prerelease: auto
+  # Upload only the packages and SHA256SUMS.
+  ids: [packages]

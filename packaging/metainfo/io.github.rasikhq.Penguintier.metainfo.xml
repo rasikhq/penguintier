@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  AppStream metadata: software centers (GNOME Software, KDE Discover) read
+  this file to show the app's name, description and links.
+  Installed to /usr/share/metainfo/. Check it with:
+    appstreamcli validate packaging/metainfo/io.github.rasikhq.Penguintier.metainfo.xml
+-->
+<component type="desktop-application">
+  <id>io.github.rasikhq.Penguintier</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+
+  <name>Penguintier</name>
+  <summary>Unofficial tray app for ZeroTier networks</summary>
+  <developer id="io.github.rasikhq">
+    <name>Rasikh Q.</name>
+  </developer>
+
+  <description>
+    <p>
+      Penguintier puts your ZeroTier networks in the system tray, with the
+      same menu as the official ZeroTier app on macOS and Windows.
+    </p>
+    <ul>
+      <li>See your node address and copy it with one click</li>
+      <li>Join, leave and reconnect networks</li>
+      <li>Toggle managed addresses, global IPs, default route and DNS per network</li>
+      <li>See each network's status, addresses and routes</li>
+    </ul>
+    <p>
+      It also makes ZeroTier's "Allow DNS Configuration" option work on Linux,
+      by handing each network's DNS settings to systemd-resolved.
+    </p>
+    <p>
+      Penguintier is unofficial and not affiliated with ZeroTier, Inc.
+      It needs the ZeroTier service (zerotier-one) to be installed.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.rasikhq.Penguintier.desktop</launchable>
+
+  <url type="homepage">https://github.com/rasikhq/penguintier</url>
+  <url type="bugtracker">https://github.com/rasikhq/penguintier/issues</url>
+  <url type="vcs-browser">https://github.com/rasikhq/penguintier</url>
+
+  <categories>
+    <category>Network</category>
+  </categories>
+  <keywords>
+    <keyword>ZeroTier</keyword>
+    <keyword>VPN</keyword>
+    <keyword>SD-WAN</keyword>
+    <keyword>tray</keyword>
+    <keyword>DNS</keyword>
+  </keywords>
+
+  <provides>
+    <binary>penguintier</binary>
+  </provides>
+
+  <!-- No violence, ads or user-to-user chat: an empty rating means "all ages". -->
+  <content_rating type="oars-1.1"/>
+</component>

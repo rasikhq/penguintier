@@ -1,3 +1,13 @@
-# Placeholder from P0. Phase P6 owns this file. See docs/architecture.md.
-# Enable the path unit; it starts penguintier-dnsd.service when needed.
+# systemd preset file (see systemd.preset(5)): says which Penguintier units
+# `systemctl preset` enables. The package's postinstall script runs it on a
+# first install. Installed to /usr/lib/systemd/system-preset/.
+#
+# penguintier-dnsd.path waits for /var/lib/zerotier-one/authtoken.secret and
+# then starts penguintier-dnsd.service, so only the path unit is enabled.
+# The service stays disabled: started on its own before ZeroTier has run, it
+# would fail to load the token.
+#
+# An admin can override this with a file of the same name in
+# /etc/systemd/system-preset/.
 enable penguintier-dnsd.path
+disable penguintier-dnsd.service
