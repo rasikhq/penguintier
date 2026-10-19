@@ -324,8 +324,28 @@ gnome-extensions enable ubuntu-appindicators@ubuntu.com
 ```
 
 Log out and back in after installing (GNOME on Wayland only finds new
-extensions at login). Without a tray host the tray logs `failed to
-register: The name org.kde.StatusNotifierWatcher was not provided`.
+extensions at login), then enable the extension. Without a tray host the
+tray logs `failed to register: The name org.kde.StatusNotifierWatcher was
+not provided`.
+
+How GNOME's extension (version 59) behaves, seen while testing P3:
+
+- It ignores the `ItemIsMenu` hint. A left click opens the menu after the
+  double-click delay (it waits to see whether a second click follows). A
+  double click calls the icon's `Activate` method instead. Penguintier has
+  none, so the extension logs `Penguintier, does not support activation`
+  once, and from then on a single left click opens the menu at once.
+  Right click always opens it.
+- It reads the menu once, when the icon appears, and afterwards only when
+  the menu is opened. An empty popup never opens, so an icon that showed
+  an empty menu at first would never get one. That is why the tray builds
+  its first menu before it registers (see `onReady` in
+  `internal/tray/run.go`).
+- `journalctl --user -b | grep -i appindicator` shows its messages. The
+  `PropertyNotFound` errors on every icon change are harmless: it asks for
+  optional properties (attention and overlay icons) the library does not
+  export.
+- It does not show tooltips.
 
 ### Manual: `make tray-mock`
 
@@ -337,6 +357,14 @@ make tray-mock MOCK_ARGS="--scenario many-networks"
 
 The tray starts against zt-mock. Type a scenario name and Enter in the
 terminal to switch; the menu follows within 2.5 s. Ctrl+C stops both.
+To switch from somewhere else instead (another terminal, a script), feed
+zt-mock from a file:
+
+```
+touch /tmp/scenario
+tail -n0 -f /tmp/scenario | make tray-mock
+echo sso-required >> /tmp/scenario      # in another terminal
+```
 
 The tray keeps its saved networks in `bin/tray-mock-config/`, not in your
 real `~/.config/penguintier/`.
@@ -362,8 +390,11 @@ real `~/.config/penguintier/`.
   notification with the manual command (P5 makes it real).
 - **joining**: Join New Network… → enter any 16-hex ID → a disabled
   "Joining <id>…" row for 5 s, then the network with "Requesting
-  configuration", and after 10 s more its name and address.
-- Left-click on the icon opens the menu (no separate action).
+  configuration", and after 10 s more its name and address. On GNOME 48
+  Wayland the Join window, started from the tray menu, opens with keyboard
+  focus in the ID field.
+- Left-click on the icon opens the menu (on GNOME after a short delay; see
+  above).
 - About Penguintier opens the About window; Quit removes the icon.
 
 ### Manual: `make run` against the real service
