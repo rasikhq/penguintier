@@ -41,16 +41,19 @@ It has two Go modules:
 | Package | Purpose |
 |---|---|
 | `internal/ztapi` | Local API client: models (`NetworkID`, `Status` with an "unknown" fallback), token and port discovery, `net/http` client (`Proxy: nil`, 2 s timeout), typed errors (`ErrNotInstalled`, `ErrServiceDown`, `ErrTokenMissing`, `ErrUnauthorized`, timeouts, protocol and HTTP errors), and the saved-networks store, including a one-time import of DesktopUI's `~/.zerotier_ui/saved_networks.json`. |
+| `internal/ztapi/ztmock` | A fake ZeroTier API (`http.Handler`) with the seven scenarios of `zt-mock`. Importable, so other packages' tests (the tray's golden menus, the DNS daemon) run against it through `httptest`. `cmd/zt-mock` is a thin command around it. |
 | `internal/resolved` | systemd-resolved over D-Bus: `SetLinkDNS`, `SetLinkDomains` (routing-only `~domain`), `SetLinkDefaultRoute(false)`, `RevertLink`, link property reads, `Available()`. |
+| `internal/dnsrule` | Which networks get DNS applied, and with what (`Check`): allowDNS on, status OK, an interface, a valid domain and server. Pure; the DNS daemon, the tray and `doctor` all use it. |
+| `internal/dnsstatus` | Each network's DNS state (`Evaluate`, pure) from facts read unprivileged over the system bus (`Probe`): resolve1 link properties, `penguintier-dnsd.service`'s `ActiveState` (systemd1), and whether systemd-networkd manages the link (network1). |
 | `internal/tray` | View model, a pure menu builder `Build(ViewModel) []Node`, and the controller. |
-| `internal/doctor` | The report behind `penguintier doctor [--json]`. |
+| `internal/doctor` | The report behind `penguintier doctor [--json]`: `Gather` (I/O) → `Facts` → `Evaluate` (pure) → `Report`. |
 | `internal/platform/clipboard` | `wl-copy` on Wayland, then `xclip`/`xsel`, then a notification showing the text. |
 | `internal/platform/notify` | Desktop notifications over D-Bus. |
 | `internal/platform/open` | Open URLs with `xdg-open`. |
 | `internal/platform/autostart` | The "Start at Login" autostart file. |
 | `internal/platform/instance` | Single instance through a D-Bus name. |
-| `internal/platform/watcher` | Is a tray host (`org.kde.StatusNotifierWatcher`) running? |
-| `internal/platform/packagekit` | Install systemd-resolved through PackageKit ("Enable DNS support…"). |
+| `internal/platform/watcher` | Is a tray host (`org.kde.StatusNotifierWatcher`) running? The GNOME AppIndicator extension's state, and fix steps per desktop and distribution. |
+| `internal/platform/packagekit` | Install a package through PackageKit's D-Bus API (`Resolve`, then `InstallPackages`), for "Enable DNS support…". |
 
 ## Contracts
 
@@ -97,15 +100,32 @@ Lookup order:
 
 Rules:
 
+- The first file that exists wins. If that file is unsafe or malformed,
+  that is the error; the next file is not tried, so the problem gets
+  fixed instead of hidden. (The system token is only "found" when it is
+  readable.)
 - Refuse a token file the user doesn't own, or one that is group- or
-  world-readable, and offer to fix it.
+  world-readable, and offer to fix it (`doctor` prints `chmod 600 <file>`;
+  "Authorize Penguintier…" writes a fresh private copy).
 - "Authorize Penguintier…" runs `pkexec penguintier-token-helper` (polkit
-  action `io.github.rasikhq.Penguintier.read-token`). The helper prints the
-  token on stdout. The tray writes it to `~/.zeroTierOneAuthToken` with mode
-  0600, atomically (temp file, then rename).
-- `penguintier deauthorize` deletes that copy.
-- pkexec exit codes: 126 = the user dismissed the prompt; 127 = no polkit
-  agent (then `doctor` prints a manual command).
+  action `io.github.rasikhq.Penguintier.read-token`, `auth_admin` for
+  active sessions and `no` otherwise; the `exec.path` annotation names
+  `/usr/libexec/penguintier/penguintier-token-helper`). The helper prints
+  the token on stdout. The tray writes it to `~/.zeroTierOneAuthToken` with
+  mode 0600, atomically (temp file, then rename), then connects again.
+- Token helper exit codes: 0 printed the token, 1 cannot read the token
+  file, 2 arguments given (it takes none), 3 the file holds no valid token.
+- pkexec exit codes: 126 = the user dismissed the prompt (the tray stays
+  quiet); 127 = wrong password, not allowed, or no polkit agent (the tray
+  shows a notification pointing to `penguintier doctor`, which prints the
+  manual command:
+  `sudo cat /var/lib/zerotier-one/authtoken.secret | install -m600 /dev/stdin ~/.zeroTierOneAuthToken`).
+- Only the first interactive run asks by itself (see state.json below);
+  otherwise the menu shows "Authorize Penguintier…". A run with
+  `--autostart` never asks.
+- `penguintier deauthorize [--yes]` deletes that copy, after asking unless
+  `--yes` is given. A tray that is running keeps its access until it
+  quits.
 
 ### ZeroTier API address
 
@@ -117,10 +137,62 @@ Rules:
 
 - `$XDG_CONFIG_HOME/penguintier/saved_networks.json` (default
   `~/.config/penguintier/`)
-- `$XDG_CONFIG_HOME/penguintier/state.json`
-- Autostart: `~/.config/autostart/io.github.rasikhq.Penguintier.desktop`
+- `$XDG_CONFIG_HOME/penguintier/state.json` (mode 0600), owned by
+  `cmd/penguintier`. Every flag starts false:
+  - `firstRunDone`: the first interactive run has happened. Only that run
+    asks for authorization by itself.
+  - `desktopUIImported`: the one-time import of DesktopUI's saved networks
+    has run (at start-up, before the menu loads them).
+  - `startAtLoginDecided`: Start at Login was turned on automatically, or
+    the user set it in the menu. From then on Penguintier never changes it
+    by itself.
+- Autostart: `$XDG_CONFIG_HOME/autostart/io.github.rasikhq.Penguintier.desktop`
   with `Exec=penguintier --autostart`. With `--autostart` the tray never
-  shows first-run prompts.
+  shows first-run prompts. "Start at Login" writes or removes it; it counts
+  as off when the file has `Hidden=true` or
+  `X-GNOME-Autostart-enabled=false`. It is turned on after the first run
+  that reaches ZeroTier with a working token, unless `startAtLoginDecided`
+  is set. Development builds (`version == "dev"`) never turn it on by
+  themselves.
+
+### Desktop integration
+
+- **Single instance:** the tray owns the session bus name
+  `io.github.rasikhq.Penguintier` (`DoNotQueue`). A second launch shows an
+  "already running" notification (none with `--autostart`) and exits 0.
+- **Missing tray host:** when nothing has owned
+  `org.kde.StatusNotifierWatcher` with `IsStatusNotifierHostRegistered`
+  true for 10 seconds, the tray shows one notification with fix steps for
+  the desktop (`$XDG_CURRENT_DESKTOP`) and, on GNOME, the distribution
+  (`/etc/os-release`) and the AppIndicator extension's state. At most once
+  per login: `$XDG_RUNTIME_DIR/penguintier/no-tray-host-notice` remembers
+  it. The extension's UUID is `ubuntu-appindicators@ubuntu.com` on Debian
+  and Ubuntu, `appindicatorsupport@rgcjonas.gmail.com` elsewhere.
+- **DNS row:** each network's submenu has a read-only "DNS: …" row
+  (`internal/dnsstatus`). States, also used by `doctor --json`:
+  `applied`, `waiting-for-resolved`, `daemon-not-running`, `link-managed`,
+  `set-by-other`, `pending`, `unknown`, `not-requested`, `not-connected`,
+  `no-dns`. The probe only touches D-Bus when some network qualifies.
+- **"Enable DNS support…"** shows while a network is
+  `waiting-for-resolved`. It asks with `zenity --question` (or
+  `kdialog --warningyesno`), explaining that the computer's DNS switches to
+  systemd-resolved, then installs `systemd-resolved` through PackageKit
+  (`Resolve` with filters newest+arch, then `InstallPackages` with
+  only-trusted, hint `interactive=true`; PackageKit shows the polkit
+  prompt). The DNS daemon notices resolve1 by itself.
+
+### `penguintier doctor`
+
+- Text by default, `--json` for scripts. Exit code 1 when a check failed,
+  0 otherwise (warnings don't count), 2 for a bad command line.
+- JSON: `{"schemaVersion": 1, "ok": bool, "checks": [...], "networks":
+  [...]}`. Each check has `id`, `title`, `status` (`ok`, `info`, `warn`,
+  `fail`, `skip`), `summary`, and optionally `fix` and `details`. The IDs,
+  in order: `penguintier.version`, `zerotier.service`, `zerotier.token`,
+  `zerotier.auth`, `desktop.tray`, `desktop.notifications`,
+  `desktop.clipboard`, `polkit`, `dns.resolved`, `dns.daemon`,
+  `dns.networks`. Fields and IDs are only ever added; a removal or a
+  change of meaning bumps `schemaVersion`.
 
 ### Icons
 
@@ -130,6 +202,7 @@ Rules:
 | `penguintier-online` | tray state: online | `assets/tray/penguintier-online.{svg,png}` |
 | `penguintier-offline` | tray state: offline | `assets/tray/penguintier-offline.{svg,png}` |
 | `penguintier-attention` | tray state: needs attention | `assets/tray/penguintier-attention.{svg,png}` |
+| `penguintier-{online,offline,attention}-symbolic` | one-color tray states that GTK recolors to match the panel | `assets/tray/penguintier-*-symbolic.svg` (not used yet: the tray sends PNG pixels; kept for an icon-name tray or a GNOME extension) |
 
 ### Tray rules
 
@@ -236,11 +309,9 @@ test` and CI test it separately.
 
 ## Stubs
 
-Until a phase fills in its part, every command prints
-`<name>: not implemented yet` to stderr. Stub commands exit 0, except
-`penguintier-token-helper`, which exits 1 so an empty token is never taken
-for success. `penguintier --version` already prints the stamped version,
-followed by "(not implemented yet)".
+P0 started every command as a stub that printed
+`<name>: not implemented yet`. All of them are implemented now;
+`penguintier --version` prints `penguintier <version>`.
 
 ## File ownership
 
@@ -253,8 +324,8 @@ file, it calls this out in its PR description.
 | `internal/ztapi/`, `cmd/zt-mock/`, `cmd/ztctl/`, `cmd/penguintier-token-helper/`, `packaging/polkit/*.policy` | P1: ztapi, zt-mock, token helper |
 | `ui/**`, `assets/**` | P2: UI dialogs, icons and brand |
 | `internal/tray/`, `internal/platform/{clipboard,notify,open}/`, `third_party/fyne-systray/` | P3: tray core |
-| `internal/resolved/`, `cmd/penguintier-dnsd/`, `packaging/systemd/penguintier-dnsd.*`, `packaging/polkit/*.rules`, `packaging/sysusers/`, `scripts/zt-selftest-network.sh` | P4: DNS daemon |
-| `cmd/penguintier/`, `internal/doctor/`, `internal/platform/{autostart,instance,watcher,packagekit}/` (may also touch P3's files) | P5: desktop integration |
+| `internal/resolved/`, `internal/dnsrule/` (moved out of the daemon by P5), `cmd/penguintier-dnsd/`, `packaging/systemd/penguintier-dnsd.*`, `packaging/polkit/*.rules`, `packaging/sysusers/`, `scripts/zt-selftest-network.sh` | P4: DNS daemon |
+| `cmd/penguintier/`, `internal/doctor/`, `internal/dnsstatus/`, `internal/platform/{autostart,instance,watcher,packagekit}/` (may also touch P3's files) | P5: desktop integration |
 | `.goreleaser.yaml`, `cmd/licensegen/`, `packaging/{scripts,metainfo,desktop}/`, `packaging/systemd/*.preset`, `.github/workflows/{package,release}.yml` | P6: packaging |
 | `README.md`, `CHANGELOG.md`, man page, `.github/FUNDING.yml`, `funding.json` | P7: release |
 | `CLAUDE.md`, `docs/architecture.md`, `.golangci.yml`, `.gitignore`, `.github/workflows/ci.yml`, `.vscode/` | P0; later changes are small and called out in the PR |
