@@ -55,6 +55,8 @@ build: ## Build all Go commands into bin/ (static, no cgo)
 
 test: ## Run the unit tests with the race detector
 	$(GO) test -race ./...
+	# third_party/fyne-systray is its own Go module, so ./... skips it.
+	cd third_party/fyne-systray && $(GO) test -race ./...
 
 lint: ## Check formatting, then run go vet and golangci-lint
 	@out=$$(gofmt -l cmd internal ui/*.go); \

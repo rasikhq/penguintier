@@ -1,3 +1,8 @@
+// Modified by the Penguintier project on 2026-10-19: systrayMenuItemSelected
+// keeps menuItemsLock read-locked while it delivers a click, so
+// MenuItem.Remove can no longer close ClickedCh in between (which panicked
+// with "send on closed channel"). See PENGUINTIER.md.
+
 // Package systray is a cross-platform Go library to place an icon and menu in the notification area.
 package systray
 
@@ -316,9 +321,13 @@ func (item *MenuItem) update() {
 }
 
 func systrayMenuItemSelected(id uint32) {
+	// Penguintier change: hold the read lock until the click is delivered.
+	// Remove deletes the item and closes ClickedCh under the write lock, so
+	// it now waits for this send instead of racing it. The send never
+	// blocks (select with default), so the lock is held only briefly.
 	menuItemsLock.RLock()
+	defer menuItemsLock.RUnlock()
 	item, ok := menuItems[id]
-	menuItemsLock.RUnlock()
 	if !ok {
 		log.Printf("systray error: no menu item with ID %d\n", id)
 		return
