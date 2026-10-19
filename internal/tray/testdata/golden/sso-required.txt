@@ -20,6 +20,7 @@ Log In to corp-sso (c0ffee1234000003)…  → open "https://sso.example.com/auth
     Device: zt34000001  (disabled)
     Type: Private  (disabled)
     DNS Domain: home.arpa  (disabled)
+    DNS: applied  (disabled)
     -----
     Addresses  (disabled)
     10.147.17.5/24  → copy "10.147.17.5"
@@ -43,6 +44,7 @@ Log In to corp-sso (c0ffee1234000003)…  → open "https://sso.example.com/auth
     Device: zt34000003  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     SSO: not logged in  (disabled)
     Open SSO Login URL…  → open "https://sso.example.com/authorize?nwid=c0ffee1234000003&state=mock"
@@ -61,6 +63,7 @@ Log In to corp-sso (c0ffee1234000003)…  → open "https://sso.example.com/auth
     Device: zt34000004  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     SSO login expires Mon 19 Oct 20:00  (disabled)
     Open SSO Login URL…  → open "https://sso.example.com/authorize?nwid=c0ffee1234000004&state=mock"

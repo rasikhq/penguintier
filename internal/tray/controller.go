@@ -9,6 +9,7 @@ import (
 
 	"github.com/godbus/dbus/v5"
 
+	"github.com/rasikhq/penguintier/internal/dnsstatus"
 	"github.com/rasikhq/penguintier/internal/platform/clipboard"
 	"github.com/rasikhq/penguintier/internal/platform/notify"
 	"github.com/rasikhq/penguintier/internal/platform/open"
@@ -71,6 +72,14 @@ type controller struct {
 
 	joinDialogOpen bool
 	authorizing    bool
+	enablingDNS    bool
+
+	// promptAuthorize: run Authorize by itself the first time the service
+	// says a token is needed (Config.PromptAuthorize). Cleared once used,
+	// and once the service answers with a working token.
+	promptAuthorize bool
+	// connected: Hooks.Connected was called in this run.
+	connected bool
 
 	// The menu as shown now.
 	shown      []Node
@@ -91,6 +100,7 @@ type controller struct {
 	clicks        chan string // the Key of a clicked entry
 	joinResults   chan joinResult
 	authResults   chan error
+	dnsResults    chan error                // results of Hooks.EnableDNS
 	notifyActions <-chan notify.ActionEvent // nil when there is no notifier
 
 	// Side effects. newController sets the real ones; tests replace them.
@@ -101,6 +111,9 @@ type controller struct {
 	startAbout   func(ctx context.Context) error
 	detectHost   func() (labelStyle, bool)
 	now          func() time.Time
+	// readDNS returns each network's DNS status (a dnsstatus.Probe's Read
+	// method in the app). nil shows no DNS rows.
+	readDNS func(ctx context.Context, networks []ztapi.Network) map[ztapi.NetworkID]dnsstatus.State
 }
 
 // newController sets up a controller. Nothing runs until run is called.
@@ -125,6 +138,8 @@ func newController(cfg Config, backend Backend, store *ztapi.SavedStore,
 		icons:   icons,
 		connect: ztapi.Discover,
 
+		promptAuthorize: cfg.PromptAuthorize,
+
 		joining:          map[ztapi.NetworkID]time.Time{},
 		ssoNotified:      map[ztapi.NetworkID]bool{},
 		ssoNotifications: map[uint32]ztapi.NetworkID{},
@@ -135,6 +150,7 @@ func newController(cfg Config, backend Backend, store *ztapi.SavedStore,
 		clicks:        make(chan string, clickQueueSize),
 		joinResults:   make(chan joinResult),
 		authResults:   make(chan error),
+		dnsResults:    make(chan error),
 		notifyActions: actions,
 
 		notifier: n,
@@ -202,6 +218,10 @@ func (c *controller) run(ctx context.Context) {
 			c.handleAuthResult(ctx, err)
 			c.refresh(ctx)
 
+		case err := <-c.dnsResults:
+			c.handleEnableDNSResult(ctx, err)
+			c.refresh(ctx)
+
 		case ev, ok := <-c.notifyActions:
 			if !ok {
 				// The notifier stopped. Receiving from a nil channel waits
@@ -217,15 +237,41 @@ func (c *controller) run(ctx context.Context) {
 // refresh polls the service and updates the menu, icon and tooltip.
 func (c *controller) refresh(ctx context.Context) {
 	vm := NewViewModel(c.poll(ctx))
+	c.firstTimeSteps(ctx, &vm)
 	c.vm = vm
 	c.notifyLogins(ctx, vm)
 	c.render(vm)
 }
 
+// firstTimeSteps does what happens once per run, the first time the
+// service answers: Hooks.Connected when the token works, or the automatic
+// Authorize prompt when a token is needed (first run only).
+//
+// vm is a pointer (*ViewModel) because Connected may turn on Start at
+// Login, and the menu should show that at once; through the pointer this
+// function changes the caller's view model, not a copy.
+func (c *controller) firstTimeSteps(ctx context.Context, vm *ViewModel) {
+	switch vm.Service {
+	case ServiceOK:
+		c.promptAuthorize = false // working token: no prompt needed in this run
+		if !c.connected {
+			c.connected = true
+			c.hooks.Connected()
+			c.startAtLogin = c.hooks.StartAtLogin()
+			vm.StartAtLogin = c.startAtLogin
+		}
+	case ServiceNeedsAuth:
+		if c.promptAuthorize {
+			c.promptAuthorize = false
+			c.startAuthorize(ctx)
+		}
+	}
+}
+
 // poll asks the service for the node status and networks, and adds the
 // tray's own state.
 func (c *controller) poll(ctx context.Context) Snapshot {
-	snap := Snapshot{Saved: c.saved, Joining: c.joining, StartAtLogin: c.startAtLogin}
+	snap := Snapshot{Saved: c.saved, Joining: c.joining, StartAtLogin: c.startAtLogin, EnablingDNS: c.enablingDNS}
 
 	if c.client == nil || c.newClientNeeded {
 		client, err := c.connect()
@@ -239,6 +285,9 @@ func (c *controller) poll(ctx context.Context) Snapshot {
 
 	snap.Status, snap.Networks, snap.Err = fetch(ctx, c.client)
 	c.logPollError(snap.Err)
+	if snap.Err == nil && c.readDNS != nil {
+		snap.DNS = c.readDNS(ctx, snap.Networks)
+	}
 	c.newClientNeeded = errors.Is(snap.Err, ztapi.ErrTokenMissing) || errors.Is(snap.Err, ztapi.ErrUnauthorized)
 	c.pruneJoining(snap.Networks)
 	return snap

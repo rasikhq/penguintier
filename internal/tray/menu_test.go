@@ -10,6 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rasikhq/penguintier/internal/dnsrule"
+	"github.com/rasikhq/penguintier/internal/dnsstatus"
+	"github.com/rasikhq/penguintier/internal/resolved"
 	"github.com/rasikhq/penguintier/internal/ztapi"
 	"github.com/rasikhq/penguintier/internal/ztapi/ztmock"
 )
@@ -41,9 +44,14 @@ type goldenCase struct {
 	scenario string
 	token    string
 	joining  []ztapi.NetworkID
+	// dns is the DNS situation of the machine (see goldenDNS); ""
+	// means everything works, so qualifying networks show "applied".
+	dns         string
+	enablingDNS bool
 }
 
-// goldenCases is every zt-mock scenario, plus a client without a token.
+// goldenCases is every zt-mock scenario, plus a client without a token,
+// plus the "online" scenario in each DNS situation.
 func goldenCases() []goldenCase {
 	var cases []goldenCase
 	for _, scenario := range ztmock.Scenarios {
@@ -54,7 +62,42 @@ func goldenCases() []goldenCase {
 		}
 		cases = append(cases, gc)
 	}
-	return append(cases, goldenCase{name: "token-missing", scenario: ztmock.Online, token: ""})
+	cases = append(cases, goldenCase{name: "token-missing", scenario: ztmock.Online, token: ""})
+	for _, dns := range []string{"no-resolved", "daemon-off", "link-managed", "pending"} {
+		cases = append(cases, goldenCase{name: "dns-" + dns, scenario: ztmock.Online, token: ztmock.Token, dns: dns})
+	}
+	return append(cases, goldenCase{
+		name: "dns-enabling", scenario: ztmock.Online, token: ztmock.Token, dns: "no-resolved", enablingDNS: true,
+	})
+}
+
+// goldenDNS returns the DNS status of each network in one of these
+// situations:
+//
+//	""             resolved and the daemon run; settings are applied
+//	"no-resolved"  systemd-resolved is not running
+//	"daemon-off"   penguintier-dnsd is not running
+//	"link-managed" systemd-networkd manages the interfaces
+//	"pending"      everything runs, settings not applied yet
+func goldenDNS(networks []ztapi.Network, situation string) map[ztapi.NetworkID]dnsstatus.State {
+	states := map[ztapi.NetworkID]dnsstatus.State{}
+	for _, n := range networks {
+		f := dnsstatus.Facts{ResolvedRunning: true, DaemonRunning: true}
+		switch situation {
+		case "":
+			// The link has exactly what the daemon sets.
+			want, _ := dnsrule.Check(n)
+			f.Link = resolved.LinkDNS{Servers: want.Servers, Domains: []resolved.Domain{{Name: want.Domain, RoutingOnly: true}}}
+		case "no-resolved":
+			f.ResolvedRunning = false
+		case "daemon-off":
+			f.DaemonRunning = false
+		case "link-managed":
+			f.Managed = true
+		}
+		states[n.ID] = dnsstatus.Evaluate(n, f)
+	}
+	return states
 }
 
 // goldenViewModel polls a fake service the way the controller does and
@@ -77,6 +120,7 @@ func goldenViewModel(t *testing.T, gc goldenCase) ViewModel {
 	return NewViewModel(Snapshot{
 		Status: status, Networks: nets, Err: err,
 		Saved: goldenSaved, Joining: joining, Location: time.UTC,
+		DNS: goldenDNS(nets, gc.dns), EnablingDNS: gc.enablingDNS,
 	})
 }
 
@@ -213,6 +257,51 @@ func TestNetworkTitle(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := networkTitle(tc.in); got != tc.want {
 				t.Errorf("networkTitle = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDNSRow: every DNS state gets its row, a network without a state
+// gets none, and only "waiting for systemd-resolved" offers "Enable DNS
+// support…". (The golden files show the rows in context.)
+func TestDNSRow(t *testing.T) {
+	states := []dnsstatus.State{
+		dnsstatus.Applied, dnsstatus.WaitingForResolved, dnsstatus.DaemonNotRunning, dnsstatus.LinkManaged,
+		dnsstatus.SetByOther, dnsstatus.Pending, dnsstatus.Unknown,
+		dnsstatus.NotRequested, dnsstatus.NotConnected, dnsstatus.NoDNS, "",
+	}
+	const id = ztapi.NetworkID("c0ffee1234000001")
+	for _, state := range states {
+		t.Run(string(state), func(t *testing.T) {
+			vm := NewViewModel(Snapshot{
+				Networks: []ztapi.Network{{ID: id, Name: "lab", Status: ztapi.StatusOK}},
+				DNS:      map[ztapi.NetworkID]dnsstatus.State{id: state},
+			})
+			var row *Node
+			nodes := Build(vm)
+			for i := range nodes {
+				for j := range nodes[i].Children {
+					if nodes[i].Children[j].Key == "net/"+string(id)+"/dns" {
+						row = &nodes[i].Children[j]
+					}
+				}
+			}
+			switch {
+			case state == "" && row != nil:
+				t.Errorf("a network without a DNS state has a row %q", row.Label)
+			case state != "" && row == nil:
+				t.Fatalf("no DNS row for %q", state)
+			case state != "" && (row.Label != "DNS: "+state.Text() || !row.Disabled):
+				t.Errorf("row = %q (disabled %t), want %q, disabled", row.Label, row.Disabled, "DNS: "+state.Text())
+			}
+
+			offered := false
+			for _, n := range nodes {
+				offered = offered || n.Key == "enable-dns"
+			}
+			if want := state == dnsstatus.WaitingForResolved; offered != want {
+				t.Errorf("Enable DNS support offered = %t, want %t", offered, want)
 			}
 		})
 	}

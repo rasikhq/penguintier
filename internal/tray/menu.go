@@ -54,6 +54,7 @@ const (
 	ActForget                  // delete Network's saved settings
 	ActAuthorize               // get an API token (Hooks.Authorize)
 	ActStartAtLogin            // turn starting at login on or off (Value)
+	ActEnableDNS               // install systemd-resolved (Hooks.EnableDNS)
 	ActAbout                   // show the About window
 	ActQuit                    // quit the tray
 )
@@ -95,6 +96,8 @@ func (a Action) String() string {
 		return "authorize"
 	case ActStartAtLogin:
 		return fmt.Sprintf("start-at-login=%t", a.Value)
+	case ActEnableDNS:
+		return "enable-dns"
 	case ActAbout:
 		return "about"
 	case ActQuit:
@@ -180,6 +183,19 @@ func buildOnline(vm ViewModel) []Node {
 		nodes = append(nodes, networkNode(n))
 	}
 
+	if vm.OfferDNS || vm.EnablingDNS {
+		enable := Node{
+			Key: "enable-dns", Label: "Enable DNS support…",
+			Tooltip: "Install systemd-resolved, so ZeroTier networks can set DNS",
+			Action:  Action{Kind: ActEnableDNS},
+		}
+		if vm.EnablingDNS {
+			// Same key and action, so the entry changes in place.
+			enable.Label, enable.Disabled = "Installing systemd-resolved…", true
+		}
+		nodes = append(nodes, separator("sep/dns"), enable)
+	}
+
 	if len(vm.Saved) > 0 {
 		nodes = append(nodes,
 			separator("sep/saved"),
@@ -221,6 +237,10 @@ func networkNode(n NetworkView) Node {
 		info(key+"/type", "Type: "+typeText(n.Type)),
 		info(key+"/dns-domain", "DNS Domain: "+orDash(n.DNS.Domain)),
 	)
+	if n.DNSState != "" {
+		// What penguintier-dnsd does with the network's DNS settings.
+		children = append(children, info(key+"/dns", "DNS: "+n.DNSState.Text()))
+	}
 
 	if n.SSOEnabled {
 		children = append(children, separator(key+"/sep/sso"), info(key+"/sso", ssoText(n)))

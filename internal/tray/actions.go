@@ -2,6 +2,7 @@ package tray
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/rasikhq/penguintier/internal/platform/notify"
@@ -42,6 +43,8 @@ func (c *controller) handleClick(ctx context.Context, key string) (quit bool) {
 		c.startAuthorize(ctx)
 	case ActStartAtLogin:
 		c.setStartAtLogin(ctx, action.Value)
+	case ActEnableDNS:
+		c.startEnableDNS(ctx)
 	case ActAbout:
 		c.about(ctx)
 	case ActQuit:
@@ -191,11 +194,51 @@ func (c *controller) startAuthorize(ctx context.Context) {
 // the new token.
 func (c *controller) handleAuthResult(ctx context.Context, err error) {
 	c.authorizing = false
+	if errors.Is(err, ErrCancelled) {
+		slog.Info("authorization cancelled")
+		return // the user dismissed the prompt: nothing to report
+	}
 	if err != nil {
 		c.showError(ctx, "Cannot authorize Penguintier", err)
 		return
 	}
 	c.newClientNeeded = true
+}
+
+// startEnableDNS runs Hooks.EnableDNS in its own goroutine: it asks the
+// user first, then waits for the installation.
+func (c *controller) startEnableDNS(ctx context.Context) {
+	if c.enablingDNS {
+		return
+	}
+	c.enablingDNS = true
+
+	hooks := c.hooks
+	results := c.dnsResults
+	go func() {
+		err := hooks.EnableDNS(ctx)
+		select {
+		case results <- err:
+		case <-ctx.Done():
+		}
+	}()
+}
+
+// handleEnableDNSResult tells the user how "Enable DNS support…" went.
+func (c *controller) handleEnableDNSResult(ctx context.Context, err error) {
+	c.enablingDNS = false
+	switch {
+	case errors.Is(err, ErrCancelled):
+		slog.Info("enabling DNS support cancelled")
+	case err != nil:
+		c.showError(ctx, "Cannot enable DNS support", err)
+	default:
+		c.notify(ctx, notify.Notification{
+			Summary: "DNS support is on",
+			Body: "systemd-resolved is installed. ZeroTier networks with “Allow DNS Configuration” " +
+				"now get their DNS settings; each network's DNS row shows the status.",
+		})
+	}
 }
 
 // setStartAtLogin turns starting at login on or off.

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rasikhq/penguintier/internal/dnsstatus"
 	"github.com/rasikhq/penguintier/internal/platform/notify"
 	"github.com/rasikhq/penguintier/internal/ztapi"
 	"github.com/rasikhq/penguintier/internal/ztapi/ztmock"
@@ -483,5 +484,173 @@ func waitFor(t *testing.T, cond func() bool, what string) {
 			t.Fatalf("timed out waiting for %s", what)
 		}
 		time.Sleep(5 * time.Millisecond)
+	}
+}
+
+// TestAuthorizeCancelled: a dismissed password prompt shows nothing.
+func TestAuthorizeCancelled(t *testing.T) {
+	env := newTestEnv(t, ztmock.Online)
+	ctx := t.Context()
+	env.c.connect = func() (*ztapi.Client, error) { return ztapi.New(env.client.BaseURL(), ""), nil }
+	env.c.refresh(ctx)
+
+	env.hooks.authorizeErr = ErrCancelled
+	env.c.handleClick(ctx, "authorize")
+	env.c.handleAuthResult(ctx, <-env.c.authResults)
+	if notes := env.notes.all(); len(notes) != 0 {
+		t.Errorf("notifications = %+v, want none after a dismissed prompt", notes)
+	}
+}
+
+// TestFirstRunPrompt: with PromptAuthorize, the first poll that needs a
+// token starts Authorize by itself, once.
+func TestFirstRunPrompt(t *testing.T) {
+	env := newTestEnv(t, ztmock.Online)
+	ctx := t.Context()
+	env.c.connect = func() (*ztapi.Client, error) { return ztapi.New(env.client.BaseURL(), ""), nil }
+	env.c.promptAuthorize = true
+	env.hooks.authorizeErr = ErrCancelled
+
+	env.c.refresh(ctx)
+	if !env.c.authorizing {
+		t.Fatal("the first poll without a token did not start Authorize")
+	}
+	env.c.handleAuthResult(ctx, <-env.c.authResults)
+	if env.hooks.authorized != 1 {
+		t.Errorf("Authorize ran %d times, want 1", env.hooks.authorized)
+	}
+
+	// Dismissed: no second automatic prompt; the menu item is there.
+	env.c.refresh(ctx)
+	if env.c.authorizing || !env.has("authorize") {
+		t.Errorf("after a dismissed prompt: authorizing = %t, Authorize entry = %t; want false, true", env.c.authorizing, env.has("authorize"))
+	}
+}
+
+// TestNoPromptWithoutFlag: without PromptAuthorize (later runs, and every
+// --autostart run) the tray never prompts by itself.
+func TestNoPromptWithoutFlag(t *testing.T) {
+	env := newTestEnv(t, ztmock.Online)
+	ctx := t.Context()
+	env.c.connect = func() (*ztapi.Client, error) { return ztapi.New(env.client.BaseURL(), ""), nil }
+	env.c.refresh(ctx)
+	env.c.refresh(ctx)
+	if env.c.authorizing {
+		t.Error("Authorize started without PromptAuthorize")
+	}
+}
+
+// TestConnected: Connected runs once, on the first poll with a working
+// token, and no prompt happens then. If it turns on Start at Login, the
+// menu shows that at once.
+func TestConnected(t *testing.T) {
+	env := newTestEnv(t, ztmock.Online)
+	ctx := t.Context()
+	env.c.promptAuthorize = true
+	env.hooks.onConnected = func() { env.hooks.startAtLogin = true }
+
+	env.c.refresh(ctx)
+	env.c.refresh(ctx)
+	if env.hooks.connected != 1 {
+		t.Errorf("Connected ran %d times, want 1", env.hooks.connected)
+	}
+	if env.c.authorizing || env.c.promptAuthorize {
+		t.Error("a working token still led to an Authorize prompt (or left one pending)")
+	}
+	if !env.shown(t, "start-at-login").Checked {
+		t.Error("Start at Login is not checked after Connected turned it on")
+	}
+}
+
+// fakeDNS returns a readDNS function that gives every network with
+// allowDNS on the state in *state, and the others "not requested".
+func fakeDNS(state *dnsstatus.State) func(context.Context, []ztapi.Network) map[ztapi.NetworkID]dnsstatus.State {
+	return func(_ context.Context, nets []ztapi.Network) map[ztapi.NetworkID]dnsstatus.State {
+		states := map[ztapi.NetworkID]dnsstatus.State{}
+		for _, n := range nets {
+			if n.AllowDNS {
+				states[n.ID] = *state
+			} else {
+				states[n.ID] = dnsstatus.NotRequested
+			}
+		}
+		return states
+	}
+}
+
+// TestDNSRowUpdatesInPlace: a DNS status change is one SetTitle, not a
+// rebuild.
+func TestDNSRowUpdatesInPlace(t *testing.T) {
+	env := newTestEnv(t, ztmock.Online)
+	ctx := t.Context()
+	state := dnsstatus.Pending
+	env.c.readDNS = fakeDNS(&state)
+	env.c.refresh(ctx)
+	if got := env.shown(t, "net/c0ffee1234000001/dns").Label; got != "DNS: applying…" {
+		t.Fatalf("DNS row = %q, want %q", got, "DNS: applying…")
+	}
+	env.backend.takeCalls()
+
+	state = dnsstatus.Applied
+	env.c.refresh(ctx)
+	want := []string{"SetTitle DNS: applying… -> DNS: applied"}
+	if calls := env.backend.takeCalls(); !slices.Equal(calls, want) {
+		t.Errorf("calls = %q, want %q", calls, want)
+	}
+}
+
+// TestEnableDNS: the entry shows while systemd-resolved is missing, turns
+// into a disabled "Installing…" row while the hook runs, and the result is
+// reported (or not, when the user said no).
+func TestEnableDNS(t *testing.T) {
+	tests := []struct {
+		name      string
+		err       error
+		wantNotes []string // notification summaries
+	}{
+		{name: "installed", err: nil, wantNotes: []string{"DNS support is on"}},
+		{name: "user said no", err: ErrCancelled, wantNotes: nil},
+		{name: "failed", err: errors.New("PackageKit is not installed"), wantNotes: []string{"Cannot enable DNS support"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := newTestEnv(t, ztmock.Online)
+			ctx := t.Context()
+			state := dnsstatus.WaitingForResolved
+			env.c.readDNS = fakeDNS(&state)
+			env.c.refresh(ctx)
+			if !env.has("enable-dns") {
+				t.Fatal("no Enable DNS support entry while systemd-resolved is missing")
+			}
+
+			env.hooks.enableDNSErr = tt.err
+			env.c.handleClick(ctx, "enable-dns")
+			env.c.refresh(ctx)
+			if row := env.shown(t, "enable-dns"); row.Label != "Installing systemd-resolved…" || !row.Disabled {
+				t.Errorf("while installing: %q disabled=%t", row.Label, row.Disabled)
+			}
+			env.c.handleClick(ctx, "enable-dns") // disabled: does nothing
+
+			err := <-env.c.dnsResults
+			if tt.err == nil {
+				state = dnsstatus.Applied // resolved is there now
+			}
+			env.c.handleEnableDNSResult(ctx, err)
+			env.c.refresh(ctx)
+
+			var summaries []string
+			for _, n := range env.notes.all() {
+				summaries = append(summaries, n.Summary)
+			}
+			if !slices.Equal(summaries, tt.wantNotes) {
+				t.Errorf("notifications %q, want %q", summaries, tt.wantNotes)
+			}
+			if tt.err == nil && env.has("enable-dns") {
+				t.Error("Enable DNS support is still offered after the install")
+			}
+			if tt.err != nil && !env.has("enable-dns") {
+				t.Error("Enable DNS support is gone after a failed install")
+			}
+		})
 	}
 }

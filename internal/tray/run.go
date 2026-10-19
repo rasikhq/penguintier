@@ -6,6 +6,7 @@ import (
 
 	"fyne.io/systray"
 
+	"github.com/rasikhq/penguintier/internal/dnsstatus"
 	"github.com/rasikhq/penguintier/internal/platform/notify"
 	"github.com/rasikhq/penguintier/internal/ztapi"
 )
@@ -14,8 +15,13 @@ import (
 type Config struct {
 	// Version is the app version, shown when the About window can't open.
 	Version string
-	// Hooks provides Authorize and Start at Login. nil means StubHooks.
+	// Hooks provides Authorize, Start at Login and Enable DNS support.
+	// nil means StubHooks.
 	Hooks Hooks
+	// PromptAuthorize: ask for authorization without a click, the first
+	// time the service says a token is needed. cmd/penguintier sets it on
+	// the first interactive run only, never at login (--autostart).
+	PromptAuthorize bool
 	// DevUIDir is one more directory to look for penguintier-ui in, after
 	// the usual ones. Development builds set it to ui/build/bin, where
 	// `make ui-build` puts it. Leave it empty in release builds.
@@ -46,6 +52,11 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return err
 	}
+	// The DNS rows read systemd-resolved and systemd over the system bus.
+	// Only the controller goroutine uses the probe.
+	probe := &dnsstatus.Probe{}
+	defer probe.Close()
+	c.readDNS = probe.Read
 
 	// WithCancel returns a child context and a function that cancels it.
 	// Cancelling tells the controller (and the dialogs it started) to stop.

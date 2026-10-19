@@ -18,6 +18,7 @@
 //     icon library (fyne.io/systray), so tests can use a fake.
 //   - helpers.go and dialogs.go: finding and starting penguintier-ui
 //     (Join and About windows), with zenity or kdialog as a fallback.
-//   - hooks.go: Authorize and Start at Login, which phase P5 provides.
+//   - hooks.go: Authorize, Start at Login and Enable DNS support, which
+//     cmd/penguintier provides.
 //   - run.go: Run, which ties it all together.
 package tray

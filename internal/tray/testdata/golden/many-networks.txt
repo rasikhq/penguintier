@@ -20,6 +20,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt34000001  (disabled)
     Type: Private  (disabled)
     DNS Domain: home.arpa  (disabled)
+    DNS: applied  (disabled)
     -----
     Addresses  (disabled)
     10.147.17.5/24  → copy "10.147.17.5"
@@ -43,6 +44,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt34000002  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Addresses  (disabled)
     172.27.4.20/16  → copy "172.27.4.20"
@@ -64,6 +66,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt34000003  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Addresses  (disabled)
     10.10.1.2/24  → copy "10.10.1.2"
@@ -85,6 +88,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt34000004  (disabled)
     Type: Private  (disabled)
     DNS Domain: v6.example  (disabled)
+    DNS: applied  (disabled)
     -----
     Addresses  (disabled)
     fdc0:ffee:1234:0:499:93a1:b2c3:d4e5/88  → copy "fdc0:ffee:1234:0:499:93a1:b2c3:d4e5"
@@ -107,6 +111,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt34000005  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Disconnect  → disconnect c0ffee1234000005
 [ ] private_net (c0ffee1234000006) ▸
@@ -122,6 +127,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt34000006  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Disconnect  → disconnect c0ffee1234000006
 [ ] c0ffee1234000007 ▸
@@ -137,6 +143,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt34000007  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Disconnect  → disconnect c0ffee1234000007
 [ ] tap_broken (c0ffee1234000008) ▸
@@ -152,6 +159,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt34000008  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Disconnect  → disconnect c0ffee1234000008
 [ ] future-net (c0ffee1234000009) ▸
@@ -167,6 +175,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt34000009  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Disconnect  → disconnect c0ffee1234000009
 [ ] sso_corp (c0ffee123400000a) ▸
@@ -182,6 +191,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt3400000a  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     SSO: not logged in  (disabled)
     Open SSO Login URL…  → open "https://sso.example.com/authorize?nwid=c0ffee123400000a&state=mock"
@@ -200,6 +210,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt3400000b  (disabled)
     Type: Public  (disabled)
     DNS Domain: corp.example  (disabled)
+    DNS: applied  (disabled)
     -----
     Addresses  (disabled)
     10.200.0.9/16  → copy "10.200.0.9"
@@ -231,6 +242,7 @@ Log In to sso_corp (c0ffee123400000a)…  → open "https://sso.example.com/auth
     Device: zt3400000c  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Disconnect  → disconnect c0ffee123400000c
 -----
