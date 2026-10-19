@@ -18,6 +18,7 @@ Join New Network…  → join
     Device: zt34000001  (disabled)
     Type: Private  (disabled)
     DNS Domain: home.arpa  (disabled)
+    DNS: applied  (disabled)
     -----
     Addresses  (disabled)
     10.147.17.5/24  → copy "10.147.17.5"
@@ -41,6 +42,7 @@ Join New Network…  → join
     Device: zt34000002  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Addresses  (disabled)
     172.27.4.20/16  → copy "172.27.4.20"

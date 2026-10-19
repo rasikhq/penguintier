@@ -206,17 +206,37 @@ func (c *fakeClock) Advance(d time.Duration) {
 }
 
 // fakeHooks records Hooks calls.
+//
+// Authorize and EnableDNS run in their own goroutines. Tests set the
+// fields before the click that starts them, and the "go" statement makes
+// those writes visible to the new goroutine, so no lock is needed.
 type fakeHooks struct {
 	authorizeErr error
+	authorized   int // Authorize calls
 	startAtLogin bool
+	connected    int // Connected calls
+	// onConnected, if set, runs inside Connected (to turn on Start at
+	// Login, like the real hook).
+	onConnected  func()
+	enableDNSErr error
 }
 
-func (h *fakeHooks) Authorize(context.Context) error { return h.authorizeErr }
-func (h *fakeHooks) StartAtLogin() bool              { return h.startAtLogin }
+func (h *fakeHooks) Authorize(context.Context) error {
+	h.authorized++
+	return h.authorizeErr
+}
+func (h *fakeHooks) StartAtLogin() bool { return h.startAtLogin }
 func (h *fakeHooks) SetStartAtLogin(on bool) error {
 	h.startAtLogin = on
 	return nil
 }
+func (h *fakeHooks) Connected() {
+	h.connected++
+	if h.onConnected != nil {
+		h.onConnected()
+	}
+}
+func (h *fakeHooks) EnableDNS(context.Context) error { return h.enableDNSErr }
 
 // testEnv is a controller wired to fakes and a zt-mock server.
 type testEnv struct {

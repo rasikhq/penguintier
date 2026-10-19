@@ -2,6 +2,7 @@
 // removing ~/.config/autostart/io.github.rasikhq.Penguintier.desktop
 // (Exec=penguintier --autostart).
 //
-// This is a P0 stub with no code yet. Phase P5 owns this package.
-// See docs/architecture.md.
+// Desktops start every program listed in that folder when the user logs
+// in. The format is the XDG Autostart spec:
+// https://specifications.freedesktop.org/autostart-spec/latest/
 package autostart

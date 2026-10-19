@@ -35,7 +35,7 @@ licenses checks, plus a UI build on Ubuntu 24.04.
 ## P0: Foundation
 
 - `make lint test build ui-build` passes.
-- `go run ./cmd/penguintier --version` prints `penguintier dev (not implemented yet)`.
+- `go run ./cmd/penguintier --version` prints `penguintier dev`.
 - `make ui-dev` opens the placeholder Join window; `make ui-dev UI_SCREEN=about`
   opens About.
 
@@ -284,8 +284,8 @@ Icons:
   with fake tools in `$PATH`.
 - `notify`: a fake notification service on a private `dbus-daemon`
   (skipped if `dbus-daemon` is not installed): body markup escaping, hints,
-  actions, and that an `ActionInvoked` signal from another program is
-  ignored.
+  actions (a `default` action is always added, P5), and that an
+  `ActionInvoked` signal from another program is ignored.
 - `open`: only `http`/`https` addresses reach a fake `xdg-open`.
 
 ### Underscores in menu labels
@@ -387,8 +387,8 @@ real `~/.config/penguintier/`.
 - **service-down**: icon offline, only "Waiting for ZeroTier system
   service…" plus the bottom section. Switch back to **online**: the menu
   returns.
-- **unauthorized**: icon attention, "Authorize Penguintier…" shows a
-  notification with the manual command (P5 makes it real).
+- **unauthorized**: icon attention, "Authorize Penguintier…" (P5 made it
+  real; see there).
 - **joining**: Join New Network… → enter any 16-hex ID → a disabled
   "Joining <id>…" row for 5 s, then the network with "Requesting
   configuration", and after 10 s more its name and address. On GNOME 48
@@ -418,9 +418,12 @@ never gets a configuration but still joins and leaves.
 
 ### Unit tests (`make test`)
 
-- `cmd/penguintier-dnsd/plan_test.go`: table tests for `Desired` (which
-  networks qualify: allowDNS on, status OK, an interface, a valid domain and
-  at least one valid server; domain and server clean-up) and `Plan` (new
+- `internal/dnsrule`: which networks qualify (allowDNS on, status OK, an
+  interface, a valid domain and at least one valid server) and the domain
+  and server clean-up. P5 moved this rule out of the daemon so the tray and
+  `doctor` share it.
+- `cmd/penguintier-dnsd/plan_test.go`: table tests for `Desired` (the rule
+  applied to a network list, keyed by interface) and `Plan` (new
   link, nothing to do, someone else's link, drift, changed servers or
   domain, updates that stopped halfway, revert, shutdown, several links).
   Every `Plan` case is also carried out on a simulated resolved and planned
@@ -570,8 +573,237 @@ podman exec pt-e2e mount --make-rshared /
 
 ## P5: Desktop integration
 
-TODO(P5): onboarding, autostart, single instance, missing tray host,
-"Enable DNS support…", `doctor`.
+### Unit tests (`make test`)
+
+- `internal/dnsstatus`: `Evaluate` for every DNS state (applied, waiting
+  for systemd-resolved, daemon not running, link managed by
+  systemd-networkd, set by another program, applying, unknown, and the
+  three "doesn't qualify" states). `TestProbeRead` reads the real facts on
+  a private `dbus-daemon` from fakes of resolve1 (`resolvedtest.Fake`),
+  systemd1 (`LoadUnit` + unit properties) and network1
+  (`GetLinkByIndex` + `AdministrativeState`), step by step from "no
+  resolved" to "applied", "managed" and back. Without a qualifying
+  network the probe never connects.
+- `internal/platform/instance`: a second claim of the D-Bus name is
+  refused, and works again after `Release`; `Activate` from a second copy
+  reaches the running one (and fails when none runs); `Lost` is closed
+  when the bus stops (as at logout).
+- `internal/platform/autostart`: write/remove, mode 0644, no leftover
+  temporary files, `Hidden=true` and `X-GNOME-Autostart-enabled=false`
+  count as off.
+- `internal/platform/watcher`: `Check` against a fake
+  StatusNotifierWatcher (no owner, owner without host, owner with host);
+  `CheckExtension` against a fake `org.gnome.Shell.Extensions` and fake
+  extension folders; the fix steps for GNOME on each distribution family
+  and each extension state, and for the other desktops; `WaitMissing`
+  timing (missing, present, a host that blinks back); the once-per-login
+  marker and its login key (a fake logind's display session, else the
+  bus's ID).
+- `internal/dnssetup` ("Enable DNS support…"): `Check` accepts exactly
+  the supported setup and refuses every other one with a reason (another
+  distribution, no systemd or apt, resolved installed or running,
+  resolvconf, no NetworkManager or an unusual DNS setup in it, networkd,
+  a missing, linked or hand-written `/etc/resolv.conf`, no working DNS,
+  an unfinished earlier switch). Backup and restore round trip on a fake
+  root (the link the package makes, a new settings file and an edited
+  nsswitch.conf all go back; a damaged copy is refused). `Enable`
+  against a fake system whose installs and removals change the files the
+  way Debian's package scripts do: works at once, the Debian race (a
+  restart fixes it), NetworkManager needs a nudge, names never resolve
+  (everything undone, files byte for byte as before), install fails, the
+  undo fails too (manual steps), unsupported (nothing touched), SIGTERM
+  in the middle, and `Undo` after a switch and after a crash.
+- `cmd/penguintier-dns-helper`: usage and the root check (exit 2),
+  `check` prints its JSON, the exit code of every outcome.
+- `internal/doctor`: `Evaluate` table tests for every verdict (token
+  missing, unsafe or rejected; service down or not installed; GNOME
+  without the extension or with it off; no session bus; no notification
+  service, clipboard tool, pkexec or polkit agent; no resolved, installed
+  but stopped, or not needed; daemon off or not installed; a link managed
+  by networkd), the fixed check IDs, the JSON shape and the text layout,
+  and the polkit agent search on a fake `/proc`.
+- `internal/tray`: new golden menus `dns-no-resolved` (with "Enable DNS
+  support…"), `dns-enabling` ("Switching DNS to systemd-resolved…"),
+  `dns-daemon-off`, `dns-link-managed`, `dns-pending`; every other golden
+  menu now has the DNS rows too. `TestDNSRow` checks the row for every
+  state. Controller tests: the first-run prompt (once, only with
+  `PromptAuthorize`), a dismissed prompt stays quiet, `Connected` runs
+  once and can turn on Start at Login, a DNS row change is one `SetTitle`,
+  and "Enable DNS support…" (installed, said no, failed).
+- `cmd/penguintier`: the command line (`--version` prints the stamped
+  version; from a terminal a release build moves to the background, but
+  not with `--foreground`, `--autostart` or as a development build),
+  `doctor` exit codes and JSON, `deauthorize` (yes, no, EOF,
+  `--yes`, nothing to delete), state.json, the Start at Login rules, the
+  pkexec flow with a fake `pkexec` and token helper (0, 126, 127, helper
+  exit codes 1 and 3), and "Enable DNS support…": the zenity/kdialog
+  question and its text (every backed-up file, the check, the undo), the
+  refusal dialog on an unsupported setup (pkexec never runs), and how each
+  helper outcome is reported. Test programs only ever find their fakes on
+  `$PATH`, never a real zenity or pkexec.
+
+### Running it by hand without touching your setup
+
+The tray keeps its state in `$XDG_CONFIG_HOME`, so a throwaway one gives
+a "first run" without losing yours:
+
+```
+make build
+XDG_CONFIG_HOME=$(mktemp -d) bin/penguintier --foreground
+```
+
+Without `--foreground`, a release build started from a terminal moves to
+the background and its log goes to the journal
+(`journalctl --user -t penguintier -f`); `make run` and `go run` stay in
+the foreground anyway.
+
+- `bin/penguintier` finds `bin/penguintier-token-helper` next to itself.
+  pkexec then shows polkit's generic "run as the super user" prompt,
+  because the policy only names `/usr/libexec/penguintier/...`. For the
+  real Penguintier prompt, install the package (or `make
+  dev-install-helper`) and run `make run`: `go run`'s binary has no
+  helper next to it, so it uses the installed one.
+- `make run` and `go run` are development builds (`version == "dev"`):
+  they never turn on Start at Login by themselves, because the autostart
+  file runs `penguintier` from `$PATH`.
+- To see the missing-tray-host notice without touching your desktop, run
+  the tray on a private session bus (it has no tray host and no
+  notification service, so the advice is only logged, after 10 s):
+
+  ```
+  XDG_CONFIG_HOME=$(mktemp -d) dbus-run-session -- bin/penguintier
+  ```
+
+- Read the menu as the tray host gets it (labels, enabled state): see the
+  `busctl ... GetLayout` command in the P3 section.
+
+### Manual: on the GNOME test machine
+
+Install the package first (`make package`, then `sudo apt install
+./dist/penguintier_*_amd64.deb`), so the token helper, the polkit policy,
+the DNS daemon and `/usr/bin/penguintier` (which the autostart file runs)
+are all in place. Quit any running Penguintier first.
+
+1. **First run.** Move your token copy and the state aside, then start
+   the tray from the app grid or a terminal:
+
+   ```
+   mv ~/.zeroTierOneAuthToken ~/.zeroTierOneAuthToken.bak
+   mv ~/.config/penguintier/state.json ~/.config/penguintier/state.json.bak
+   penguintier
+   ```
+
+   `penguintier` returns at once with "Penguintier is starting in the
+   system tray" (it moved to the background; Ctrl+C or closing the
+   terminal doesn't quit it).
+
+   The polkit prompt "Penguintier needs to read the ZeroTier service's API
+   token…" opens by itself. Enter your password: within a few seconds the
+   menu shows your address and networks, `ls -l ~/.zeroTierOneAuthToken`
+   shows `-rw-------`, and `~/.config/autostart/io.github.rasikhq.Penguintier.desktop`
+   exists (Start at Login is checked).
+   - Dismiss the prompt instead (Cancel): no notification; the menu shows
+     "Authorize Penguintier…", and clicking it shows the prompt again.
+   - Quit and start again: no prompt by itself any more
+     (`firstRunDone` in `~/.config/penguintier/state.json`).
+2. **Autostart.** Log out and back in. The icon appears without any
+   prompt (`ps -o args= -C penguintier` shows `penguintier --autostart`).
+   Uncheck Start at Login: the autostart file is gone, and stays gone on
+   later runs.
+3. **Single instance.** Run `penguintier --foreground` again while it
+   runs: it exits 0 at once (`echo $?`), the running tray shows
+   "Penguintier is already running" (it stays in the notification list),
+   and there is still one icon. Starting it from the app grid does the
+   same. Click the notification: it closes, and no new one appears
+   (a click on any Penguintier notification must never start Penguintier
+   again).
+4. **Missing tray host.** `gnome-extensions disable
+   ubuntu-appindicators@ubuntu.com`: the icon disappears, and about 10 s
+   later one notification says the extension is turned off, with the
+   `gnome-extensions enable ...` command. Enable it again: the icon comes
+   back by itself. Disable it again: no second notification in this login
+   (`rm $XDG_RUNTIME_DIR/penguintier/no-tray-host-notice` to see it
+   again). After logging out and back in, disabling it shows the
+   notification again, and `pgrep -a -x penguintier` lists one tray only
+   (the one from before the logout has quit).
+5. **Doctor.** `penguintier doctor` prints one line per check and exits 0
+   on this machine; `penguintier doctor --json | jq .ok` prints `true`.
+   With the token moved aside, `doctor` exits 1 and prints the manual
+   `sudo cat ... | install -m600 /dev/stdin ~/.zeroTierOneAuthToken`
+   command, which works when pasted.
+6. **Deauthorize.** `penguintier deauthorize` asks, `y` deletes the copy;
+   `penguintier deauthorize --yes` when there is none says there is
+   nothing to do.
+7. **Enable DNS support.** This switches the whole machine's DNS, so
+   run the DNS switch lab (below) first and only go on when it passes.
+   Before starting, write down the way back and keep a second device
+   handy:
+
+   ```
+   pkexec /usr/libexec/penguintier/penguintier-dns-helper undo     # Penguintier's own undo
+   sudo cp /var/lib/penguintier/dns-backup/resolv.conf /etc/resolv.conf   # if that can't run
+   ```
+
+   Then make the self-test network (`scripts/zt-selftest-network.sh`, see
+   P4), start its DNS server and turn on "Allow DNS Configuration" for it
+   in the tray. Its submenu shows "DNS: waiting for systemd-resolved", and
+   the menu offers "Enable DNS support…". Click it:
+   - On an unsupported setup a dialog lists why and nothing changes.
+   - Otherwise the question lists the backed-up files and the automatic
+     undo. Switch → one password prompt → "Switching DNS to
+     systemd-resolved…" → "DNS support is on". The row shows "DNS:
+     applied", and `resolvectl query host.pt.test` and
+     `getent ahosts debian.org` both work. `penguintier doctor` shows the
+     switch ("DNS switch") and the undo command.
+   - Cancel, or close the password prompt: nothing changes.
+
+### DNS switch lab
+
+`scripts/dns-lab/run.sh` tests penguintier-dns-helper in disposable
+podman containers (Debian 13 with systemd, D-Bus, polkit, udev and
+NetworkManager), never on the machine running it. NetworkManager owns
+`eth1` and gets its address and DNS server by DHCP from a fake router
+(dnsmasq in its own network namespace) that answers `check.pt-lab`, like
+a desktop on Wi-Fi.
+
+```
+scripts/dns-lab/run.sh                  # all scenarios, a few minutes
+scripts/dns-lab/run.sh rollback crash   # some of them
+```
+
+| Scenario | What happens | Must end with |
+|---|---|---|
+| `enable-undo` | switch on, then `undo` | resolved gets NetworkManager's server; after the undo the files are byte for byte as before and the package is purged |
+| `rollback` | a firewall rule drops resolved's DNS packets, so names stop resolving after the switch | the helper undoes everything itself (exit 1, `rolled-back`) |
+| `sigterm` | SIGTERM while it waits | undone, "interrupted" |
+| `crash` | SIGKILL during the install | `check` refuses until `undo`; `undo` restores everything |
+| `crash-busy` | SIGKILL during the install, `undo` at once while apt-get still runs | `undo` waits for dpkg's lock, then restores everything, and nothing changes 10 s later |
+| `refuse` | hand-written resolv.conf, no working DNS, NetworkManager stopped | refused (exit 3), no backup, nothing installed |
+
+Every scenario checks that names resolve at the end.
+
+Found with it (Debian 13, systemd 257): the package's install script
+starts resolved before D-Bus knows its user (`Unknown username
+"systemd-resolve" in message bus configuration file`), so resolved runs
+without its bus name and gets no DNS servers; the helper restarts it.
+Removing the package rebuilds `/etc/resolv.conf` from resolved's server
+list (empty in that case), which is why the helper restores its backup
+afterwards. NetworkManager (1.52, `dns=default`, `rc-manager=symlink`)
+hands its DNS to resolved by itself once resolved has its bus name; no
+reload was needed in the lab.
+
+On a real machine (Debian 13, GNOME 48 Wayland, NetworkManager 1.52 on
+Wi-Fi), on 2026-10-19, after the rebuild: "Enable DNS support…" →
+Switch → one password prompt → "DNS support is on". resolved had its bus
+name at once (its system user was left from an earlier install, so no
+race), NetworkManager handed it the Wi-Fi's DNS servers by itself, the
+self-test network's row said "DNS: applied", `host.pt.test` resolved
+through the ZeroTier link and other names through the Wi-Fi's DNS,
+`/etc/nsswitch.conf` was unchanged, and the backup of `/etc/resolv.conf`
+matched a copy taken beforehand. `penguintier doctor` reported no
+problems. (The first attempt, with the PackageKit version, is what cut
+this machine's DNS and led to the rebuild; see "Enable DNS support" in
+architecture.md.)
 
 ## P6: Packaging
 
@@ -689,12 +921,9 @@ systemctl status penguintier-dnsd.path
 ```
 
 - "Penguintier" shows up in the app launcher with its icon.
-- `penguintier-dnsd.path` is enabled and "active (waiting)". Until P4
-  replaces the stub daemon, it turns "failed (Result:
-  unit-start-limit-hit)" a few seconds after
-  `/var/lib/zerotier-one/authtoken.secret` exists (so right away when
-  ZeroTier is installed): the stub exits at once, so the path unit starts
-  it again and again until systemd gives up.
+- `penguintier-dnsd.path` is enabled and "active (waiting)" until
+  `/var/lib/zerotier-one/authtoken.secret` exists; then it starts
+  `penguintier-dnsd.service`, which stays "active (running)" (see P4).
 - `sudo apt purge penguintier` (or `sudo dnf remove penguintier`) removes
   every file and the enable symlink. The `penguintier-dns` system user stays
   on purpose (see `packaging/scripts/postremove.sh`).

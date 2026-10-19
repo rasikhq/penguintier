@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/rasikhq/penguintier/internal/dnsrule"
 	"github.com/rasikhq/penguintier/internal/resolved"
 	"github.com/rasikhq/penguintier/internal/ztapi"
 )
@@ -41,82 +42,20 @@ func (c Config) domains() []resolved.Domain {
 // Desired picks the networks whose DNS settings should be applied, and
 // returns a Config for each, keyed by interface name ("ztabcdefgh").
 //
-// A network qualifies only when all of these hold:
-//   - "Allow DNS Configuration" (allowDNS) is on,
-//   - its status is OK,
-//   - it has an interface,
-//   - the controller sent a valid domain and at least one valid server.
+// Which networks qualify, and the clean-up of their domain and servers, is
+// decided by internal/dnsrule. The tray's DNS row and `penguintier doctor`
+// use the same rule, so they always agree with the daemon.
 func Desired(networks []ztapi.Network) map[string]Config {
 	desired := map[string]Config{}
 	for _, n := range networks {
-		if !n.AllowDNS || n.Status != ztapi.StatusOK || n.PortDeviceName == "" {
+		want, reason := dnsrule.Check(n)
+		if reason != dnsrule.Qualifies {
 			continue
 		}
-		domain, ok := normalizeDomain(n.DNS.Domain)
-		if !ok {
-			continue
-		}
-		servers := parseServers(n.DNS.Servers)
-		if len(servers) == 0 {
-			continue
-		}
-		desired[n.PortDeviceName] = Config{Network: n.ID, Servers: servers, Domain: domain}
+		desired[n.PortDeviceName] = Config{Network: n.ID, Servers: want.Servers, Domain: want.Domain}
 	}
 	return desired
 }
-
-// normalizeDomain lower-cases a domain, drops a trailing dot and checks it
-// is a plain DNS name. "." (the root) is refused: "~." would send every
-// query on the machine to the ZeroTier network's servers.
-func normalizeDomain(s string) (string, bool) {
-	d := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(s), "."))
-	if d == "" || len(d) > 253 {
-		return "", false
-	}
-	for _, label := range strings.Split(d, ".") {
-		if label == "" || len(label) > 63 {
-			return "", false
-		}
-		for _, r := range label {
-			ok := (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_'
-			if !ok {
-				return "", false
-			}
-		}
-	}
-	return d, true
-}
-
-// parseServers turns the controller's server list into addresses, in
-// order. It drops what resolved would refuse or merge, so what we set is
-// exactly what resolved reports back: invalid text, 0.0.0.0 and ::,
-// resolved's own stub addresses 127.0.0.53 and 127.0.0.54, and duplicates.
-// Otherwise the daemon would see a difference on every check and write
-// forever.
-func parseServers(list []string) []netip.Addr {
-	var servers []netip.Addr
-	for _, s := range list {
-		addr, err := netip.ParseAddr(strings.TrimSpace(s))
-		if err != nil {
-			continue // not an IP address: skip it
-		}
-		addr = addr.Unmap().WithZone("")
-		if addr.IsUnspecified() || addr == stubAddr || addr == proxyStubAddr {
-			continue
-		}
-		if slices.Contains(servers, addr) {
-			continue
-		}
-		servers = append(servers, addr)
-	}
-	return servers
-}
-
-// resolved's local stub resolvers. It refuses them as link DNS servers.
-var (
-	stubAddr      = netip.MustParseAddr("127.0.0.53")
-	proxyStubAddr = netip.MustParseAddr("127.0.0.54")
-)
 
 // OpKind says what an Op does. It is a string so tests and logs read well.
 type OpKind string

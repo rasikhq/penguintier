@@ -1,0 +1,64 @@
+icon: online
+tooltip: Penguintier: online, 2 networks
+
+My Address: a1b2c3d4e5  → copy "a1b2c3d4e5", notify
+-----
+Join New Network…  → join
+-----
+[x] home-lab (c0ffee1234000001) ▸
+    Network ID: c0ffee1234000001  → copy "c0ffee1234000001"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000001 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000001 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000001 allowDefault=true
+    [x] Allow DNS Configuration  → set c0ffee1234000001 allowDNS=false
+    -----
+    Status: OK  (disabled)
+    Ethernet: 02:12:34:00:00:01  (disabled)
+    Device: zt34000001  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: home.arpa  (disabled)
+    DNS: waiting for systemd-resolved  (disabled)
+    -----
+    Addresses  (disabled)
+    10.147.17.5/24  → copy "10.147.17.5"
+    fdc0:ffee:1234:0:199:93a1:b2c3:d4e5/88  → copy "fdc0:ffee:1234:0:199:93a1:b2c3:d4e5"
+    -----
+    Routes  (disabled)
+    10.147.17.0/24  → copy "10.147.17.0/24"
+    192.168.100.0/24 via 10.147.17.1  → copy "192.168.100.0/24"
+    -----
+    Disconnect  → disconnect c0ffee1234000001
+[x] office (c0ffee1234000002) ▸
+    Network ID: c0ffee1234000002  → copy "c0ffee1234000002"
+    -----
+    [x] Allow Managed Addresses  → set c0ffee1234000002 allowManaged=false
+    [ ] Allow Global IPs  → set c0ffee1234000002 allowGlobal=true
+    [ ] Allow Default Route Override  → set c0ffee1234000002 allowDefault=true
+    [ ] Allow DNS Configuration  → set c0ffee1234000002 allowDNS=true
+    -----
+    Status: OK  (disabled)
+    Ethernet: 02:12:34:00:00:02  (disabled)
+    Device: zt34000002  (disabled)
+    Type: Private  (disabled)
+    DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
+    -----
+    Addresses  (disabled)
+    172.27.4.20/16  → copy "172.27.4.20"
+    -----
+    Routes  (disabled)
+    172.27.0.0/16  → copy "172.27.0.0/16"
+    -----
+    Disconnect  → disconnect c0ffee1234000002
+-----
+Switching DNS to systemd-resolved…  (disabled)  → enable-dns
+-----
+Saved Networks  (disabled)
+old_lab (c0ffee12340000aa) ▸
+    Reconnect  → reconnect c0ffee12340000aa
+    Forget  → forget c0ffee12340000aa
+-----
+[ ] Start at Login  → start-at-login=true
+About Penguintier  → about
+Quit  → quit

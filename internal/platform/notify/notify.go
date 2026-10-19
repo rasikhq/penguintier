@@ -138,8 +138,21 @@ func (n *Notifier) Notify(ctx context.Context, msg Notification) (uint32, error)
 
 	// The spec sends actions as one flat list: key, label, key, label, ...
 	actions := []string{}
+	hasDefault := false
 	for _, a := range msg.Actions {
 		actions = append(actions, a.Key, a.Label)
+		if a.Key == DefaultAction {
+			hasDefault = true
+		}
+	}
+	// Every notification gets a default action (what clicking it does),
+	// even if it does nothing. Without one, GNOME Shell "opens the app" on
+	// a click: it runs the .desktop file, which starts a second
+	// Penguintier, whose "already running" notice would come back on the
+	// next click. With one, the click only reports the action to us. The
+	// label is rarely shown (GNOME never shows it).
+	if !hasDefault {
+		actions = append(actions, DefaultAction, "Dismiss")
 	}
 
 	// Hints are optional extras. A D-Bus "variant" can hold a value of any

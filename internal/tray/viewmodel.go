@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/rasikhq/penguintier/internal/dnsstatus"
 	"github.com/rasikhq/penguintier/internal/ztapi"
 )
 
@@ -44,6 +45,12 @@ type Snapshot struct {
 
 	StartAtLogin bool
 
+	// DNS is each network's DNS status, by network ID. A network without
+	// an entry shows no DNS row.
+	DNS map[ztapi.NetworkID]dnsstatus.State
+	// EnablingDNS: "Enable DNS support…" is installing systemd-resolved.
+	EnablingDNS bool
+
 	// Location is the time zone SSO expiry times are shown in:
 	// time.Local in the app, time.UTC in tests (so they don't depend on
 	// the machine's time zone). nil means time.Local.
@@ -66,6 +73,12 @@ type ViewModel struct {
 	Joining  []ztapi.NetworkID // asked to join but not listed yet, sorted
 
 	StartAtLogin bool
+
+	// OfferDNS: a network asks for DNS but systemd-resolved is missing,
+	// so the menu offers "Enable DNS support…".
+	OfferDNS bool
+	// EnablingDNS: systemd-resolved is being installed.
+	EnablingDNS bool
 }
 
 // NetworkView is one joined network.
@@ -78,6 +91,9 @@ type NetworkView struct {
 	// SSOExpiry is when the SSO login runs out, in Snapshot.Location. It
 	// is the zero time when the network has no expiry.
 	SSOExpiry time.Time
+	// DNSState is the network's DNS status; "" shows no DNS row. (Not
+	// called DNS: that name is taken by ztapi.Network's DNS settings.)
+	DNSState dnsstatus.State
 }
 
 // SavedView is one disconnected network.
@@ -88,7 +104,7 @@ type SavedView struct {
 
 // NewViewModel turns a Snapshot into a ViewModel. It does no I/O.
 func NewViewModel(s Snapshot) ViewModel {
-	vm := ViewModel{StartAtLogin: s.StartAtLogin}
+	vm := ViewModel{StartAtLogin: s.StartAtLogin, EnablingDNS: s.EnablingDNS}
 	vm.Service, vm.Problem = classify(s.Err)
 	if vm.Service != ServiceOK {
 		// Without the service, the node and its networks are unknown, and
@@ -107,9 +123,14 @@ func NewViewModel(s Snapshot) ViewModel {
 	joined := map[ztapi.NetworkID]bool{}
 	for _, n := range s.Networks {
 		joined[n.ID] = true
-		view := NetworkView{Network: n}
+		// Reading a missing key from a map (even a nil map) gives the zero
+		// value, here "", so a network without a DNS entry has no row.
+		view := NetworkView{Network: n, DNSState: s.DNS[n.ID]}
 		if expiry, ok := n.AuthExpiry(); ok {
 			view.SSOExpiry = expiry.In(loc)
+		}
+		if view.DNSState == dnsstatus.WaitingForResolved {
+			vm.OfferDNS = true
 		}
 		vm.Networks = append(vm.Networks, view)
 	}

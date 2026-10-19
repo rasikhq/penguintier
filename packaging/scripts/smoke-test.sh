@@ -115,6 +115,7 @@ expected_files() {
 755 /usr/libexec/penguintier/penguintier-ui
 755 /usr/libexec/penguintier/penguintier-dnsd
 755 /usr/libexec/penguintier/penguintier-token-helper
+755 /usr/libexec/penguintier/penguintier-dns-helper
 644 /usr/lib/systemd/system/penguintier-dnsd.service
 644 /usr/lib/systemd/system/penguintier-dnsd.path
 644 /usr/lib/systemd/system-preset/80-penguintier.preset

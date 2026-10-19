@@ -1,0 +1,24 @@
+# A disposable Debian 13 "desktop" for testing "Enable DNS support…"
+# (penguintier-dns-helper) without touching a real machine: systemd, D-Bus,
+# polkit, udev and NetworkManager, but no systemd-resolved. Its package is
+# downloaded into apt's cache, so the switch works without internet.
+# Built and used by scripts/dns-lab/run.sh.
+FROM docker.io/library/debian:13
+
+ENV DEBIAN_FRONTEND=noninteractive
+# Debian images delete downloaded packages after each install and stop
+# package scripts from starting services. A real system does neither, and
+# the test depends on both.
+RUN rm -f /etc/apt/apt.conf.d/docker-clean /usr/sbin/policy-rc.d && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends systemd systemd-sysv dbus polkitd udev \
+      network-manager iproute2 procps dnsmasq-base nftables jq dnsutils ca-certificates && \
+    apt-get install -y --download-only --no-install-recommends systemd-resolved
+
+# NetworkManager manages eth1 (made by run.sh) with DHCP, like a desktop's
+# Wi-Fi or Ethernet.
+COPY lab-nm.conf /etc/NetworkManager/conf.d/90-pt-lab.conf
+COPY lab-eth1.nmconnection /etc/NetworkManager/system-connections/lab-eth1.nmconnection
+RUN chmod 600 /etc/NetworkManager/system-connections/lab-eth1.nmconnection
+
+CMD ["/sbin/init"]

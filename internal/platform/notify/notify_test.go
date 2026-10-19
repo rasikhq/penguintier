@@ -142,18 +142,33 @@ func TestNotify(t *testing.T) {
 		caps     []string
 		msg      Notification
 		wantBody string
+		// wantActions is the flat key, label list the service gets. A
+		// default action is always added, so a click never starts a second
+		// Penguintier on GNOME.
+		wantActions []string
 	}{
 		{
-			name:     "plain text service",
-			caps:     []string{"body", "actions"},
-			msg:      Notification{Summary: "Copied", Body: "a1b2c3d4e5 & <more>", Transient: true},
-			wantBody: "a1b2c3d4e5 & <more>",
+			name:        "plain text service",
+			caps:        []string{"body", "actions"},
+			msg:         Notification{Summary: "Copied", Body: "a1b2c3d4e5 & <more>", Transient: true},
+			wantBody:    "a1b2c3d4e5 & <more>",
+			wantActions: []string{"default", "Dismiss"},
 		},
 		{
-			name:     "markup service gets escaped text",
-			caps:     []string{"body", "body-markup", "actions"},
-			msg:      Notification{Summary: "Login needed", Body: "R&D <lab>", Actions: []Action{{Key: "open", Label: "Open login"}}},
-			wantBody: "R&amp;D &lt;lab&gt;",
+			name:        "markup service gets escaped text",
+			caps:        []string{"body", "body-markup", "actions"},
+			msg:         Notification{Summary: "Login needed", Body: "R&D <lab>", Actions: []Action{{Key: "open", Label: "Open login"}}},
+			wantBody:    "R&amp;D &lt;lab&gt;",
+			wantActions: []string{"open", "Open login", "default", "Dismiss"},
+		},
+		{
+			name: "own default action is kept",
+			caps: []string{"body", "actions"},
+			msg: Notification{Summary: "Login needed", Body: "lab", Actions: []Action{
+				{Key: DefaultAction, Label: "Open login"}, {Key: "open-login", Label: "Open login"},
+			}},
+			wantBody:    "lab",
+			wantActions: []string{"default", "Open login", "open-login", "Open login"},
 		},
 	}
 	for _, tc := range tests {
@@ -178,12 +193,8 @@ func TestNotify(t *testing.T) {
 				t.Errorf("service got app %q, summary %q, body %q; want %q, %q, %q",
 					got.appName, got.summary, got.body, appName, tc.msg.Summary, tc.wantBody)
 			}
-			var wantActions []string
-			for _, a := range tc.msg.Actions {
-				wantActions = append(wantActions, a.Key, a.Label)
-			}
-			if strings.Join(got.actions, "|") != strings.Join(wantActions, "|") {
-				t.Errorf("actions = %q, want %q", got.actions, wantActions)
+			if strings.Join(got.actions, "|") != strings.Join(tc.wantActions, "|") {
+				t.Errorf("actions = %q, want %q", got.actions, tc.wantActions)
 			}
 			_, transient := got.hints["transient"]
 			if transient != tc.msg.Transient {

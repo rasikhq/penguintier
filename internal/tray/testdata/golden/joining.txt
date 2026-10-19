@@ -19,6 +19,7 @@ Joining c0ffee1234000099…  (disabled)
     Device: zt34000001  (disabled)
     Type: Private  (disabled)
     DNS Domain: home.arpa  (disabled)
+    DNS: applied  (disabled)
     -----
     Addresses  (disabled)
     10.147.17.5/24  → copy "10.147.17.5"
@@ -42,6 +43,7 @@ Joining c0ffee1234000099…  (disabled)
     Device: zt34000010  (disabled)
     Type: Private  (disabled)
     DNS Domain: —  (disabled)
+    DNS: not requested (Allow DNS is off)  (disabled)
     -----
     Disconnect  → disconnect c0ffee1234000010
 -----
