@@ -1,8 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <!-- Placeholder from P0. Phase P2 replaces it with the real brand icon. -->
-  <rect x="8" y="8" width="112" height="112" rx="24" fill="#1f2937"/>
-  <ellipse cx="64" cy="70" rx="30" ry="38" fill="#f9fafb"/>
-  <circle cx="54" cy="56" r="5" fill="#1f2937"/>
-  <circle cx="74" cy="56" r="5" fill="#1f2937"/>
-  <path d="M57 66 L71 66 L64 77 Z" fill="#f59e0b"/>
+  <!-- Penguintier app icon: a penguin inside a tilted orbit, with one peer
+       riding the ring. Original artwork, MIT license. 16-24 px sizes are
+       drawn separately in assets/brand/app-icon-small.svg. -->
+  <defs>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2C4170"/>
+      <stop offset="1" stop-color="#1B2747"/>
+    </linearGradient>
+  </defs>
+  <!-- back half of the orbit, behind the penguin -->
+  <path d="M9.8 89.6A57 17 -18 0 1 118.2 54.4" fill="none" stroke="#1EC8E0" stroke-width="6" stroke-linecap="round"/>
+  <!-- feet and flippers -->
+  <ellipse cx="51" cy="113" rx="10" ry="5" fill="#FF9E2C"/>
+  <ellipse cx="77" cy="113" rx="10" ry="5" fill="#FF9E2C"/>
+  <path d="M31 60C22 68 17 82 18 96C25 93 31 86 34 78Z" fill="#1E2B4A"/>
+  <path d="M97 60C106 68 111 82 110 96C103 93 97 86 94 78Z" fill="#1E2B4A"/>
+  <!-- body -->
+  <path d="M64 12C86 12 100 34 100 64C100 96 86 116 64 116C42 116 28 96 28 64C28 34 42 12 64 12Z" fill="url(#body)"/>
+  <!-- face and belly -->
+  <g fill="#FFFFFF">
+    <circle cx="53" cy="46" r="12"/>
+    <circle cx="75" cy="46" r="12"/>
+    <ellipse cx="64" cy="80" rx="27" ry="31"/>
+  </g>
+  <circle cx="54" cy="47" r="4.5" fill="#1E2B4A"/>
+  <circle cx="74" cy="47" r="4.5" fill="#1E2B4A"/>
+  <circle cx="55.4" cy="45.4" r="1.5" fill="#FFFFFF"/>
+  <circle cx="75.4" cy="45.4" r="1.5" fill="#FFFFFF"/>
+  <circle cx="45" cy="58" r="4.5" fill="#FF8FA3" opacity=".55"/>
+  <circle cx="83" cy="58" r="4.5" fill="#FF8FA3" opacity=".55"/>
+  <path d="M57 55Q64 51.5 71 55Q67.5 62 64 64Q60.5 62 57 55Z" fill="#FF9E2C"/>
+  <!-- front half of the orbit, and the peer on it -->
+  <path d="M118.2 54.4A57 17 -18 0 1 9.8 89.6" fill="none" stroke="#1EC8E0" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="111.4" cy="66.8" r="8" fill="#1EC8E0" stroke="#FFFFFF" stroke-width="3"/>
 </svg>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Penguintier Icons</title>
+<!--
+  Icon preview for Penguintier. Open it in a browser straight from disk
+  (file://); it loads the SVGs next to it, so it always shows the real files.
+  Light and dark backgrounds are drawn explicitly, so the page does not
+  depend on the browser's color scheme.
+-->
+<style>
+  :root {
+    --page: #f6f5f4;
+    --card: #ffffff;
+    --ink: #1f2430;
+    --muted: #5e6675;
+    --line: #e2e0dd;
+    --light-bg: #f6f5f4;
+    --dark-bg: #1d1d20;
+    font-family: system-ui, -apple-system, "Cantarell", "Ubuntu", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--page);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --page: #161619; --card: #222226; --ink: #ececef; --muted: #a1a5b0; --line: #34343a; }
+  }
+  body { margin: 0; background: var(--page); }
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 20px; margin: 0; }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 22px 0 8px; font-weight: 600; }
+  p { margin: 0; line-height: 1.5; color: var(--muted); }
+  .lede { max-width: 70ch; }
+  code { font-family: ui-monospace, "DejaVu Sans Mono", monospace; font-size: .92em; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 22px; margin-top: 24px; }
+  .card > p { max-width: 75ch; }
+
+  .light { background: var(--light-bg); color: #1f2430; }
+  .dark { background: var(--dark-bg); color: #f2f2f2; }
+
+  .ladder { display: flex; align-items: flex-end; gap: 22px; padding: 18px 20px 12px; border-radius: 12px; overflow-x: auto; }
+  .ladder + .ladder { margin-top: 8px; }
+  .ladder figure { margin: 0; display: grid; justify-items: center; gap: 6px; flex: none; }
+  .ladder figcaption { font-size: 11px; opacity: .65; font-variant-numeric: tabular-nums; }
+
+  .states { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; }
+  .states > div { border-radius: 12px; padding: 14px 16px; display: grid; grid-template-columns: auto repeat(3, 1fr); align-items: center; gap: 10px 14px; font-size: 12px; }
+  .states .head { opacity: .65; text-align: center; }
+  .states .row { display: flex; gap: 10px; align-items: center; justify-content: center; }
+
+  /* Mock desktop bars */
+  .bar { display: flex; align-items: center; gap: 14px; padding: 0 12px; margin-top: 8px; border-radius: 10px; font-size: 14px; }
+  .bar .spacer { flex: 1; }
+  .bar svg.sym { width: 16px; height: 16px; fill: currentColor; flex: none; }
+  .gnome { height: 32px; background: #000; color: #fff; font-family: "Cantarell", system-ui, sans-serif; font-weight: 700; }
+  .gnome .ws { display: flex; gap: 5px; align-items: center; padding: 6px 10px; border-radius: 99px; background: rgba(255,255,255,.12); }
+  .gnome .ws i { width: 6px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.55); }
+  .gnome .ws i:first-child { width: 28px; background: #fff; }
+  .gnome .clock { position: absolute; left: 50%; transform: translateX(-50%); }
+  .gnome { position: relative; }
+  .gnome .status { display: flex; gap: 10px; align-items: center; padding: 4px 10px; border-radius: 99px; }
+  .gnome .tray { display: flex; gap: 12px; align-items: center; }
+  .panel { height: 44px; font-weight: 500; }
+  .panel.light { background: #eff0f1; color: #232629; border: 1px solid #d4d5d7; }
+  .panel.dark { background: #2a2e32; color: #fcfcfc; }
+  .panel .tray { display: flex; gap: 10px; align-items: center; }
+  .panel .launcher { width: 26px; height: 26px; border-radius: 7px; background: currentColor; opacity: .18; }
+  .panel .task { width: 120px; height: 28px; border-radius: 6px; background: currentColor; opacity: .08; }
+  .panel .clock { font-size: 13px; text-align: right; line-height: 1.15; font-variant-numeric: tabular-nums; }
+
+  footer { margin-top: 36px; font-size: 13px; }
+  /* Symbolic icons are drawn in #2e3436; GNOME recolors them to the panel's
+     text color. On dark bars this fakes that with a filter, and puts the
+     warning badge (bottom-right) back in color on top. */
+  .sym-light { position: relative; display: inline-block; line-height: 0; }
+  .sym-light img { display: block; }
+  .sym-light img:first-child { filter: brightness(0) invert(1); }
+  .sym-light img + img { position: absolute; inset: 0; clip-path: circle(21% at 78.1% 78.1%); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Penguintier icons</h1>
+  <p class="lede">The icon set, drawn from the real files in <code>assets/</code>: the app icon at
+    every size, and the tray states in color and as monochrome "symbolic" icons, inside a mock
+    GNOME top bar and desktop panels.</p>
+
+  <section class="card" id="icons">
+    <p>App icon: <code>icons/hicolor/scalable/apps/io.github.rasikhq.Penguintier.svg</code> (32&nbsp;px and up)
+      and <code>brand/app-icon-small.svg</code> (16–24&nbsp;px). Tray: <code>tray/penguintier-{online,offline,attention}[-symbolic].svg</code>.
+      Run <code>python3 assets/render-icons.py</code> after editing an SVG.</p>
+  </section>
+
+  <footer><p>Unofficial; not affiliated with ZeroTier, Inc. Original artwork for Penguintier (MIT).</p></footer>
+</main>
+
+<!-- Generic symbolic icons for the mock bars (not part of Penguintier). -->
+<template id="sym">
+  <svg class="sym" viewBox="0 0 16 16"><path d="M8 13.6 10.1 11a3.2 3.2 0 0 0-4.2 0Z M1.6 6.3a9.6 9.6 0 0 1 12.8 0l-1.4 1.7a7.4 7.4 0 0 0-10 0Z M3.9 9.1a6 6 0 0 1 8.2 0l-1.4 1.6a3.9 3.9 0 0 0-5.4 0Z"/></svg>
+  <svg class="sym" viewBox="0 0 16 16"><path d="M1.5 6h3L8.5 2.5v11L4.5 10h-3Z M10.4 5.1a4.2 4.2 0 0 1 0 5.8l-1-1a2.8 2.8 0 0 0 0-3.8Z M12.3 3.2a6.9 6.9 0 0 1 0 9.6l-1-1a5.5 5.5 0 0 0 0-7.6Z"/></svg>
+  <svg class="sym" viewBox="0 0 16 16"><path d="M5.5 1.5h5v1.5H12a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1h1.5Z M4.5 4.5v9h7v-9Z M5.5 8h5v4.5h-5Z"/></svg>
+</template>
+<template id="other-tray">
+  <svg class="sym" viewBox="0 0 16 16"><path d="M4.5 13A3.5 3.5 0 0 1 4 6.05 4.5 4.5 0 0 1 12.6 6.5 3.3 3.3 0 0 1 12 13Z"/></svg>
+  <svg class="sym" viewBox="0 0 16 16"><path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v6a1.5 1.5 0 0 1-1.5 1.5H7l-3.5 3v-3h0A1.5 1.5 0 0 1 2 9.5Z"/></svg>
+</template>
+
+<script>
+  // Builds the page from the real icon files. (Plain DOM code; no libraries.)
+  const img = (src, size) => `<img src="${src}" width="${size}" height="${size}" alt="">`;
+  const sym = document.getElementById('sym').innerHTML;
+  const other = document.getElementById('other-tray').innerHTML;
+
+  {
+    const el = document.getElementById('icons');
+    const appSrc = (s) => `../icons/hicolor/${s}x${s}/apps/io.github.rasikhq.Penguintier.png`;
+    const appSizes = [16, 22, 24, 32, 48, 64, 128, 256];
+    const appLadder = (cls) => `<div class="ladder ${cls}">` + appSizes.map((s) =>
+      `<figure>${img(appSrc(s), s)}<figcaption>${s}</figcaption></figure>`).join('') + '</div>';
+    const color = (state, size) => img(`../tray/penguintier-${state}.svg`, size);
+    // A symbolic icon as it looks on a light panel (as drawn) or a dark one (recolored).
+    const symbolic = (state, size, onDark) => {
+      const src = `../tray/penguintier-${state}-symbolic.svg`;
+      if (!onDark) return img(src, size);
+      const badge = state === 'attention' ? img(src, size) : '';
+      return `<span class="sym-light">${img(src, size)}${badge}</span>`;
+    };
+    const statesBlock = (cls, onDark) => {
+      let html = `<div class="${cls}"><span></span><span class="head">online</span><span class="head">offline</span><span class="head">attention</span>`;
+      for (const [label, draw] of [['color', color], ['symbolic', (st, s) => symbolic(st, s, onDark)]]) {
+        for (const s of [16, 22, 24]) {
+          html += `<span class="head">${label} ${s}</span>`;
+          for (const st of ['online', 'offline', 'attention']) html += `<span class="row">${draw(st, s)}</span>`;
+        }
+      }
+      return html + '</div>';
+    };
+    const gnome = (icon) => `<div class="bar gnome"><span class="ws"><i></i><i></i><i></i></span>
+      <span class="clock">Oct 19  14:05</span><span class="spacer"></span>
+      <span class="tray">${other}${icon}</span><span class="status">${sym}</span></div>`;
+    const panel = (cls, icon) => `<div class="bar panel ${cls}"><span class="launcher"></span>
+      <span class="task"></span><span class="task"></span><span class="spacer"></span>
+      <span class="tray">${other}${icon}${sym}</span>
+      <span class="clock">14:05<br><small>10/19/26</small></span></div>`;
+    const states = ['online', 'offline', 'attention'];
+    el.insertAdjacentHTML('beforeend', `
+      <h3>App icon (the PNGs in icons/hicolor)</h3>${appLadder('light')}${appLadder('dark')}
+      <h3>Tray states</h3><div class="states">${statesBlock('light', false)}${statesBlock('dark', true)}</div>
+      <h3>GNOME top bar (AppIndicator extension), 16 px: color</h3>${states.map((st) => gnome(color(st, 16))).join('')}
+      <h3>GNOME top bar, 16 px: symbolic</h3>${states.map((st) => gnome(symbolic(st, 16, true))).join('')}
+      <h3>Desktop panels, 22 px (KDE, Cinnamon, XFCE)</h3>
+      ${panel('light', color('online', 22))}${panel('light', symbolic('attention', 22, false))}
+      ${panel('dark', color('online', 22))}${panel('dark', color('offline', 22))}${panel('dark', symbolic('online', 22, true))}`);
+  }
+
+</script>
+</body>
+</html>

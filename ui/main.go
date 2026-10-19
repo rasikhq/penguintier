@@ -9,7 +9,7 @@
 // Anything else prints usage and exits 2. This contract is in
 // docs/architecture.md ("UI process").
 //
-// This is the P0 placeholder. Phase P2 owns ui/ and builds the real windows.
+// The window follows the desktop's light or dark style (see theme.go).
 package main
 
 import (
@@ -29,6 +29,13 @@ import (
 //
 //go:embed all:frontend/dist
 var assets embed.FS
+
+// appIcon is the window icon. X11 desktops show it in the title bar and the
+// task switcher; Wayland desktops take the icon from the .desktop file
+// instead, matched through the program name below.
+//
+//go:embed build/appicon.png
+var appIcon []byte
 
 // version is set at build time with -ldflags "-X main.version=...".
 var version = "dev"
@@ -65,25 +72,35 @@ func run(args []string) int {
 	screen := args[0]
 	var title string
 	var width, height int
-	// Sizes fit the placeholder content (not counting the title bar).
+	// Sizes fit the content exactly (not counting the title bar). If you
+	// change the layout in frontend/src, check that nothing gets cut off.
 	switch screen {
 	case screenJoin:
-		title, width, height = "Join Network", 440, 216
+		title, width, height = "Join Network", 420, 184
 	case screenAbout:
-		title, width, height = "About Penguintier", 420, 224
+		title, width, height = "About Penguintier", 360, 324
 	default:
 		printUsage()
 		return 2
 	}
 
-	app := NewApp(screen)
+	// Pick light or dark before the window exists, and paint the window
+	// in the matching color so it doesn't flash white while the page loads.
+	style, dark := applyDesktopStyle()
+	background := &options.RGBA{R: 250, G: 250, B: 251, A: 255}
+	if dark {
+		background = &options.RGBA{R: 34, G: 34, B: 38, A: 255}
+	}
+
+	app := NewApp(screen, style.accentColor)
 
 	// wails.Run opens the window and blocks until it closes.
 	err := wails.Run(&options.App{
-		Title:         title,
-		Width:         width,
-		Height:        height,
-		DisableResize: true,
+		Title:            title,
+		Width:            width,
+		Height:           height,
+		DisableResize:    true,
+		BackgroundColour: background,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -94,7 +111,13 @@ func run(args []string) int {
 			app,
 		},
 		Linux: &linux.Options{
+			// Sets the Wayland app ID and the X11 WM class, so desktops
+			// match the window to io.github.rasikhq.Penguintier.desktop.
 			ProgramName: appID,
+			Icon:        appIcon,
+			// Two small static windows don't need the GPU. Software
+			// rendering avoids blank windows on some GPU drivers.
+			WebviewGpuPolicy: linux.WebviewGpuPolicyNever,
 		},
 	})
 	if err != nil {

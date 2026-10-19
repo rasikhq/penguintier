@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Symbolic (one-color) icon: fills only, no strokes, so GTK and GNOME
+       Shell can recolor it to match the panel. #2e3436 is the usual
+       placeholder color that they replace. -->
+  <!-- State: online. -->
+  <defs>
+    <!-- Cuts a thin gap around the front of the orbit out of the penguin. -->
+    <clipPath id="orbit-gap">
+      <path clip-rule="evenodd" transform="rotate(-18 8 9)" d="M-8 -8H24V24H-8Z M-0.45 9A8.45 3.45 0 0 0 16.45 9L13.75 9A5.75 0.75 0 0 1 2.25 9Z"/>
+    </clipPath>
+    <!-- Hides the back of the orbit behind the penguin, with a small gap. -->
+    <clipPath id="behind-penguin">
+      <path clip-rule="evenodd" d="M-8 -8H24V24H-8Z M8 .5C11.14 .5 12.82 3.74 12.82 8C12.82 12.48 10.91 15.5 8 15.5C5.09 15.5 3.18 12.48 3.18 8C3.18 3.74 4.86 .5 8 .5Z"/>
+    </clipPath>
+  </defs>
+  <g fill="#2e3436">
+    <g clip-path="url(#behind-penguin)"><path transform="rotate(-18 8 9)" d="M0.25 9A7.75 2.75 0 0 1 15.75 9L14.45 9A6.45 1.45 0 0 0 1.55 9Z"/></g>
+    <g clip-path="url(#orbit-gap)">
+      <path fill-rule="evenodd" d="M8 1.3C10.8 1.3 12.3 4.2 12.3 8C12.3 12 10.6 14.7 8 14.7C5.4 14.7 3.7 12 3.7 8C3.7 4.2 5.2 1.3 8 1.3Z M8 4.825A1.6 1.6 0 0 0 5 5.6C5 7 5.1 8.4 5.1 9.8A2.9 3.8 0 0 0 10.9 9.8C10.9 8.4 11 7 11 5.6A1.6 1.6 0 0 0 8 4.825Z"/>
+      <circle cx="6.8" cy="5.8" r=".75"/><circle cx="9.2" cy="5.8" r=".75"/>
+      <path d="M7 7.1H9L8 8.5Z"/>
+    </g>
+    <path transform="rotate(-18 8 9)" d="M0.25 9A7.75 2.75 0 0 0 15.75 9L14.45 9A6.45 1.45 0 0 1 1.55 9Z"/>
+  </g>
+</svg>
