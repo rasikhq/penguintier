@@ -63,8 +63,10 @@ It has two Go modules:
 - **App ID:** `io.github.rasikhq.Penguintier`. It is used for:
   - the .desktop file name and the app icon name,
   - the D-Bus single-instance name,
-  - the Wails window's WM class (`ProgramName` in `ui/main.go`, and
-    `StartupWMClass` in the .desktop file),
+  - the program name of the Join and About windows, which gives their
+    Wayland app ID and X11 WM_CLASS (`setProgramName` in
+    `ui/progname.go`, called before GTK starts), matched by
+    `StartupWMClass` in the .desktop file,
   - the polkit action prefix (`io.github.rasikhq.Penguintier.read-token`).
 - The README and the About window say that Penguintier is unofficial and
   not affiliated with ZeroTier, Inc.
