@@ -1,0 +1,18 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "penguintier-ui",
+  "outputfilename": "penguintier-ui",
+  "frontend:install": "bun install",
+  "frontend:build": "bun run build",
+  "frontend:dev:watcher": "bun run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "Rasikh Q.",
+    "email": "rasikhqadeer98@gmail.com"
+  },
+  "info": {
+    "productName": "Penguintier",
+    "copyright": "Copyright (c) 2026 Rasikh Q.",
+    "comments": "Unofficial; not affiliated with ZeroTier, Inc."
+  }
+}

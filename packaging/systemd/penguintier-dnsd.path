@@ -1,0 +1,15 @@
+# Placeholder from P0. Phase P4 owns this file. See docs/architecture.md.
+#
+# Starts penguintier-dnsd.service once ZeroTier has written its API token,
+# so the daemon never starts before zerotier-one has run at least once.
+
+[Unit]
+Description=Start Penguintier DNS once the ZeroTier auth token exists
+Documentation=https://github.com/rasikhq/penguintier
+
+[Path]
+PathExists=/var/lib/zerotier-one/authtoken.secret
+Unit=penguintier-dnsd.service
+
+[Install]
+WantedBy=multi-user.target

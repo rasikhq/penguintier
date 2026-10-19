@@ -1,0 +1,21 @@
+# Placeholder from P0. Phase P4 owns this file and adds the hardening
+# (ProtectSystem=strict, empty CapabilityBoundingSet, IPAddressAllow=localhost,
+# SystemCallFilter=@system-service, ...). See docs/architecture.md.
+
+[Unit]
+Description=Penguintier DNS for ZeroTier networks (via systemd-resolved)
+Documentation=https://github.com/rasikhq/penguintier
+After=zerotier-one.service
+
+[Service]
+Type=exec
+ExecStart=/usr/libexec/penguintier/penguintier-dnsd
+User=penguintier-dns
+# The daemon gets the ZeroTier API token as a systemd credential, so it never
+# needs read access to /var/lib/zerotier-one itself.
+LoadCredential=zerotier-authtoken:/var/lib/zerotier-one/authtoken.secret
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

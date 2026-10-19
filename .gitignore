@@ -1,0 +1,26 @@
+# Go build output (make build writes here)
+/bin/
+*.test
+*.out
+coverage.*
+
+# GoReleaser output (make package)
+/dist/
+
+# Wails UI (ui/ is its own module; see ui/README.md)
+/ui/build/bin/
+/ui/frontend/dist/
+/ui/frontend/package.json.md5
+
+# bun / node
+node_modules/
+*.log
+*.local
+
+# Editors and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.sw?
+.DS_Store

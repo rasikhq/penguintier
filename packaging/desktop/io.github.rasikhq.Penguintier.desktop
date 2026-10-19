@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Penguintier
+GenericName=ZeroTier Tray
+Comment=Tray app for ZeroTier networks (unofficial)
+Exec=penguintier
+Icon=io.github.rasikhq.Penguintier
+Terminal=false
+Categories=Network;
+Keywords=ZeroTier;VPN;Network;Tray;
+StartupNotify=false
+StartupWMClass=io.github.rasikhq.Penguintier
