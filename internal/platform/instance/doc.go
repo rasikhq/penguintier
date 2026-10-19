@@ -1,6 +1,9 @@
 // Package instance keeps Penguintier to a single running copy by claiming
-// the D-Bus name io.github.rasikhq.Penguintier (with DoNotQueue).
+// the D-Bus name io.github.rasikhq.Penguintier on the session bus (with
+// DoNotQueue).
 //
-// This is a P0 stub with no code yet. Phase P5 owns this package.
-// See docs/architecture.md.
+// A D-Bus name has at most one owner. The first copy takes it; a second
+// copy asks for it, is told that someone else has it, and quits. When the
+// first copy exits (or crashes) the bus frees the name by itself, so there
+// is no stale lock file to clean up.
 package instance
