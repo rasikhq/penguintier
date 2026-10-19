@@ -212,6 +212,17 @@ Checked on 2026-10-19 (Debian 13, GNOME 48 Wayland, Go 1.27.2,
     That is the missing-tray-host case P5 detects (GNOME needs the
     AppIndicator extension).
 
+### Third-party code
+
+`fyne.io/systray` (Apache-2.0) is used from a patched copy of v1.12.2 in
+`third_party/fyne-systray/`, through
+`replace fyne.io/systray => ./third_party/fyne-systray` in `go.mod`. The
+patch fixes a crash when a menu click arrives while the menu is rebuilt.
+`third_party/fyne-systray/PENGUINTIER.md` lists every difference from
+upstream; `third_party/README.md` has the rules for that folder. The copy
+is its own Go module, so `go test ./...` from the root skips it; `make
+test` and CI test it separately.
+
 ## Stubs
 
 Until a phase fills in its part, every command prints
@@ -230,7 +241,7 @@ file, it calls this out in its PR description.
 |---|---|
 | `internal/ztapi/`, `cmd/zt-mock/`, `cmd/ztctl/`, `cmd/penguintier-token-helper/`, `packaging/polkit/*.policy` | P1: ztapi, zt-mock, token helper |
 | `ui/**`, `assets/**` | P2: UI dialogs, icons and brand |
-| `internal/tray/`, `internal/platform/{clipboard,notify,open}/` | P3: tray core |
+| `internal/tray/`, `internal/platform/{clipboard,notify,open}/`, `third_party/fyne-systray/` | P3: tray core |
 | `internal/resolved/`, `cmd/penguintier-dnsd/`, `packaging/systemd/penguintier-dnsd.*`, `packaging/polkit/*.rules`, `packaging/sysusers/`, `scripts/zt-selftest-network.sh` | P4: DNS daemon |
 | `cmd/penguintier/`, `internal/doctor/`, `internal/platform/{autostart,instance,watcher,packagekit}/` (may also touch P3's files) | P5: desktop integration |
 | `.goreleaser.yaml`, `packaging/{scripts,metainfo,desktop}/`, `packaging/systemd/*.preset`, `.github/workflows/{package,release}.yml` | P6: packaging |

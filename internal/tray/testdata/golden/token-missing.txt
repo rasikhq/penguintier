@@ -1,0 +1,9 @@
+icon: attention
+tooltip: Penguintier: Not yet authorized to use ZeroTier
+
+Not yet authorized to use ZeroTier  (disabled)
+Authorize Penguintier…  → authorize
+-----
+[ ] Start at Login  → start-at-login=true
+About Penguintier  → about
+Quit  → quit

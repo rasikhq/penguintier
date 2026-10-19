@@ -1,22 +1,29 @@
 // Command penguintier is the Penguintier tray app for ZeroTier.
 //
-// This is a P0 stub. It already accepts the planned command line:
+// It accepts the planned command line:
 //
 //	penguintier [--autostart]     start the tray
 //	penguintier --version         print the version
 //	penguintier doctor [--json]   print a diagnostic report
 //	penguintier deauthorize       delete the copied ZeroTier token
 //
-// but every action only prints "not implemented yet". Phase P3 builds the
-// tray and phase P5 owns this file. See docs/architecture.md.
+// The tray runs (phase P3, internal/tray). doctor and deauthorize still
+// only print "not implemented yet"; phase P5 owns this file and fills
+// them in. See docs/architecture.md.
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
+	"path/filepath"
+	"syscall"
+
+	"github.com/rasikhq/penguintier/internal/tray"
 )
 
 // version is the app version. Release builds replace it at link time:
@@ -84,11 +91,30 @@ func run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintf(stdout, "penguintier %s (not implemented yet)\n", version)
 		return 0
 	}
-	if *autostart {
-		fmt.Fprintln(stderr, "penguintier: --autostart is not implemented yet")
-		return 0
+	// Phase P5 uses --autostart to skip first-run prompts. The tray itself
+	// starts the same way with or without it.
+	_ = autostart
+	return startTray(stderr)
+}
+
+// startTray runs the tray until the user quits. It is a variable holding a
+// function so main_test.go can swap in a stand-in: the real tray blocks
+// until Quit.
+var startTray = func(stderr io.Writer) int {
+	// The context is cancelled on Ctrl+C or SIGTERM, which quits the tray
+	// cleanly.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	cfg := tray.Config{Version: version, Hooks: tray.StubHooks{}}
+	if version == "dev" {
+		// `make run` (go run): also find the UI that `make ui-build` made.
+		cfg.DevUIDir = filepath.Join("ui", "build", "bin")
 	}
-	fmt.Fprintln(stderr, "penguintier: the tray is not implemented yet")
+	if err := tray.Run(ctx, cfg); err != nil {
+		fmt.Fprintln(stderr, "penguintier:", err)
+		return 1
+	}
 	return 0
 }
 

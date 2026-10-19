@@ -49,6 +49,12 @@ jobs:
       - name: Test (race detector)
         run: go test -race ./...
 
+      - name: Test the patched fyne.io/systray copy
+        # third_party/fyne-systray is its own Go module, so `./...` above
+        # skips it. See third_party/fyne-systray/PENGUINTIER.md.
+        working-directory: third_party/fyne-systray
+        run: go test -race ./...
+
       - name: Build without cgo (static binaries)
         run: CGO_ENABLED=0 go build ./...
 

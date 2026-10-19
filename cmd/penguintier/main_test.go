@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"strings"
 	"testing"
 )
@@ -12,6 +13,9 @@ import (
 // is one case, and the loop below runs them all. t.Run gives each case its
 // own name in the test output, e.g. TestRun/version.
 func TestRun(t *testing.T) {
+	// The real tray runs until Quit; a stand-in returns at once.
+	startTray = func(io.Writer) int { return 0 }
+
 	tests := []struct {
 		name       string
 		args       []string

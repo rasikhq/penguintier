@@ -55,6 +55,8 @@ build: ## Build all Go commands into bin/ (static, no cgo)
 
 test: ## Run the unit tests with the race detector
 	$(GO) test -race ./...
+	# third_party/fyne-systray is its own Go module, so ./... skips it.
+	cd third_party/fyne-systray && $(GO) test -race ./...
 
 lint: ## Check formatting, then run go vet and golangci-lint
 	@out=$$(gofmt -l cmd internal ui/*.go); \
@@ -95,8 +97,31 @@ run: ## Run the tray from source
 mock: ## Run zt-mock, the fake ZeroTier API (MOCK_ARGS=...)
 	$(GO) run ./cmd/zt-mock $(MOCK_ARGS)
 
-tray-mock: ## TODO(P3): run the tray against zt-mock
-	@echo "TODO(P3): run the tray against zt-mock"; exit 1
+# zt-mock prints two `export NAME=value` lines; the loop below reads them
+# from its output and starts the tray in the background with them set.
+# zt-mock keeps this terminal's input, so typing a scenario name + Enter
+# switches scenarios live. Ctrl+C stops both. Built without -ldflags, so
+# the tray's version is "dev" and it finds the UI in ui/build/bin.
+# XDG_CONFIG_HOME keeps the mock's saved networks in bin/tray-mock-config,
+# away from your real ~/.config/penguintier (programs the tray starts, such
+# as xdg-open, see it too, so they may fall back to system defaults).
+tray-mock: ## Run the tray against zt-mock (MOCK_ARGS="--scenario NAME"; type a scenario name to switch)
+	CGO_ENABLED=0 $(GO) build -o bin/ ./cmd/zt-mock ./cmd/penguintier
+	@bin/zt-mock $(MOCK_ARGS) | { \
+		while IFS= read -r line; do \
+			printf '%s\n' "$$line"; \
+			case "$$line" in \
+				*"export PENGUINTIER_API_URL="*) url="$${line#*=}" ;; \
+				*"export PENGUINTIER_TOKEN_FILE="*) token="$${line#*=}" ;; \
+			esac; \
+			if [ -n "$$url" ] && [ -n "$$token" ] && [ -z "$$pid" ]; then \
+				XDG_CONFIG_HOME="$(CURDIR)/bin/tray-mock-config" \
+					PENGUINTIER_API_URL="$$url" PENGUINTIER_TOKEN_FILE="$$token" bin/penguintier & \
+				pid=$$!; \
+			fi; \
+		done; \
+		if [ -n "$$pid" ]; then kill "$$pid" 2>/dev/null; fi; \
+	}
 
 live-test: ## Run the live tests against the real local ZeroTier service
 	$(GO) test -tags live -count=1 ./...
