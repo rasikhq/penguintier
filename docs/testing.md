@@ -1010,9 +1010,14 @@ VMs need hardware virtualization. If `/dev/kvm` doesn't exist, turn on
 
 ```
 ls -l /dev/kvm                    # must exist
-sudo adduser $USER kvm            # if it is crw-rw---- root kvm, then log out and back in
 sudo apt install quickemu         # Debian 13 has 4.9.7
 ```
+
+On a desktop, `ls -l /dev/kvm` usually ends its mode with a `+`
+(`crw-rw----+`). That means your login session already has access through
+an ACL. If there is no `+` and `python3 -c "open('/dev/kvm','rb')"` fails,
+add yourself to the group with `sudo adduser $USER kvm`, then log out and
+back in.
 
 One VM at a time with 4 GB of RAM fits a 16 GB machine, and each disk grows
 to about 20–30 GB. Make a folder for them and fetch each image (`quickget
@@ -1029,14 +1034,29 @@ quickget linuxmint 22.2 cinnamon
 quickget popos 24.04 intel
 ```
 
-If quickget doesn't know a release (Pop!_OS 24.04 may be newer than
-quickemu 4.9.7), download the ISO yourself and write the config by hand,
-for example `popos-24.04.conf`:
+quickemu 4.9.7 is older than some of these releases. It doesn't know
+Pop!_OS 24.04 at all. For Ubuntu 24.04 it asks for 24.04.3, which Ubuntu no
+longer serves: the "ISO" it saves is a 285-byte error page and the checksum
+check fails. In those cases, download the current ISO yourself, check it
+against the distribution's `SHA256SUMS`, and write the config by hand. For
+example, `ubuntu-24.04.conf`:
 
 ```
+#!/usr/bin/quickemu --vm
 guest_os="linux"
-disk_img="popos-24.04/disk.qcow2"
-iso="popos-24.04/pop-os_24.04_amd64_intel.iso"
+disk_img="ubuntu-24.04/disk.qcow2"
+iso="ubuntu-24.04/ubuntu-24.04.5.1-desktop-amd64.iso"
+disk_size="40G"
+ram="4G"
+cpu_cores="4"
+```
+
+With the image in `~/vms/ubuntu-24.04/`:
+
+```
+cd ~/vms/ubuntu-24.04
+curl -fLO https://releases.ubuntu.com/24.04/ubuntu-24.04.5.1-desktop-amd64.iso
+curl -fsS https://releases.ubuntu.com/24.04/SHA256SUMS | grep desktop | sha256sum --check --ignore-missing
 ```
 
 Start a VM with `quickemu --vm ubuntu-24.04.conf`, install the system with
