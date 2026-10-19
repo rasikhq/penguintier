@@ -1,5 +1,3 @@
-// Package open opens URLs, such as SSO login pages, with xdg-open.
-//
-// This is a P0 stub with no code yet. Phase P3 owns this package.
-// See docs/architecture.md.
+// Package open opens web addresses, such as SSO login pages, in the user's
+// browser with xdg-open.
 package open

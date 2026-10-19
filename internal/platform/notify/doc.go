@@ -1,6 +1,7 @@
-// Package notify shows desktop notifications over D-Bus
-// (org.freedesktop.Notifications).
+// Package notify shows desktop notifications through the standard
+// org.freedesktop.Notifications D-Bus service (GNOME Shell, KDE Plasma,
+// dunst, mako, ... all provide it), including buttons ("actions") such as
+// "Open login".
 //
-// This is a P0 stub with no code yet. Phase P3 owns this package.
-// See docs/architecture.md.
+// Spec: https://specifications.freedesktop.org/notification-spec/latest/
 package notify
