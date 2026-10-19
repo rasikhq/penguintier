@@ -1,0 +1,26 @@
+{
+  "allowDNS": false,
+  "allowDefault": false,
+  "allowGlobal": false,
+  "allowManaged": true,
+  "assignedAddresses": [],
+  "bridge": false,
+  "broadcastEnabled": false,
+  "dhcp": false,
+  "dns": {
+    "domain": "",
+    "servers": []
+  },
+  "id": "c0ffee1234000005",
+  "mac": "02:12:34:00:00:05",
+  "mtu": 2800,
+  "multicastSubscriptions": [],
+  "name": "",
+  "netconfRevision": 0,
+  "nwid": "c0ffee1234000005",
+  "portDeviceName": "ztc0ffee05",
+  "portError": 0,
+  "routes": [],
+  "status": "ACCESS_DENIED",
+  "type": "PRIVATE"
+}

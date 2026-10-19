@@ -1,0 +1,26 @@
+{
+  "allowDNS": false,
+  "allowDefault": false,
+  "allowGlobal": false,
+  "allowManaged": true,
+  "assignedAddresses": [],
+  "bridge": false,
+  "broadcastEnabled": false,
+  "dhcp": false,
+  "dns": {
+    "domain": "",
+    "servers": []
+  },
+  "id": "a1b2c3d4e5dead01",
+  "mac": "02:00:5e:00:00:01",
+  "mtu": 2800,
+  "multicastSubscriptions": [],
+  "name": "",
+  "netconfRevision": 0,
+  "nwid": "a1b2c3d4e5dead01",
+  "portDeviceName": "ztfake0001",
+  "portError": 0,
+  "routes": [],
+  "status": "REQUESTING_CONFIGURATION",
+  "type": "PRIVATE"
+}

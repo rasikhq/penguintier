@@ -3,11 +3,24 @@
  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <!--
-  Placeholder from P0. Phase P1 owns this file. See docs/architecture.md.
+  Polkit action for "Authorize Penguintier…" (phase P1; see
+  docs/architecture.md, "ZeroTier API token").
 
-  One action: let the tray run penguintier-token-helper through pkexec to
-  read ZeroTier's local API token. The admin password is asked once per
-  session at most (auth_admin_keep).
+  The tray runs `pkexec /usr/libexec/penguintier/penguintier-token-helper`.
+  pkexec looks for an action whose exec.path annotation matches that exact
+  path, and shows this action's message in the password prompt instead of
+  the generic "run as the super user" text. The helper prints the token, and
+  the tray saves a private copy in ~/.zeroTierOneAuthToken, so this prompt
+  appears once, not on every start.
+
+  Defaults:
+  - allow_active=auth_admin: a user at the machine must enter an admin
+    password every time. No "keep" (auth_admin_keep): the token gives full
+    control of ZeroTier, and the prompt is rare anyway.
+  - allow_inactive and allow_any=no: never from an inactive session, SSH or
+    a background service.
+
+  Install for local testing with `make dev-install-helper`.
 -->
 <policyconfig>
   <vendor>Penguintier</vendor>
@@ -15,12 +28,12 @@
   <icon_name>io.github.rasikhq.Penguintier</icon_name>
 
   <action id="io.github.rasikhq.Penguintier.read-token">
-    <description>Read the ZeroTier API token</description>
-    <message>Penguintier needs to read the ZeroTier service token to control your networks.</message>
+    <description>Let Penguintier control ZeroTier</description>
+    <message>Penguintier needs to read the ZeroTier service's API token so it can show and change your ZeroTier networks. It keeps a private copy in your home folder, so you are asked only once.</message>
     <defaults>
       <allow_any>no</allow_any>
       <allow_inactive>no</allow_inactive>
-      <allow_active>auth_admin_keep</allow_active>
+      <allow_active>auth_admin</allow_active>
     </defaults>
     <annotate key="org.freedesktop.policykit.exec.path">/usr/libexec/penguintier/penguintier-token-helper</annotate>
   </action>
