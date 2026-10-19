@@ -66,3 +66,41 @@ func TestLost(t *testing.T) {
 		t.Fatal("Lost was not closed after the bus stopped")
 	}
 }
+
+// TestActivate: a second copy's Activate reaches the running copy.
+func TestActivate(t *testing.T) {
+	bus := resolvedtest.StartTestBus(t)
+	first, err := dbus.Connect(bus.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = first.Close() })
+	lock, err := claimOn(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	second, err := dbus.Connect(bus.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = second.Close() })
+	for i := 0; i < 3; i++ { // more than the channel holds: none may block
+		if err := activateOn(t.Context(), second); err != nil {
+			t.Fatalf("Activate %d: %v", i, err)
+		}
+	}
+	select {
+	case <-lock.Activations():
+	case <-time.After(5 * time.Second):
+		t.Fatal("the running copy got no activation")
+	}
+
+	// Nobody running: Activate fails instead of hanging.
+	if err := lock.Release(); err != nil {
+		t.Fatal(err)
+	}
+	if err := activateOn(t.Context(), second); err == nil {
+		t.Error("Activate with nobody running: no error")
+	}
+}

@@ -31,6 +31,8 @@ func TestRun(t *testing.T) {
 	}
 	// The doctor reads made-up facts, never the real machine.
 	gatherFacts = func(context.Context) doctor.Facts { return doctor.Facts{Version: "dev"} }
+	// Whatever runs the tests, behave as if not started from a terminal.
+	startedFromTerminal = func() bool { return false }
 
 	tests := []struct {
 		name       string
@@ -330,5 +332,63 @@ func TestConfirm(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	if _, err := confirm(t.Context()); err == nil || !strings.Contains(err.Error(), "systemd-resolved") {
 		t.Errorf("no dialog program: %v", err)
+	}
+}
+
+// TestBackground: from a terminal, a release build moves to the
+// background; --foreground, --autostart and development builds don't.
+func TestBackground(t *testing.T) {
+	oldVersion, oldTerminal := version, startedFromTerminal
+	t.Cleanup(func() { version, startedFromTerminal = oldVersion, oldTerminal })
+
+	var got []string
+	startTray = func(bool, io.Writer) int { got = append(got, "tray"); return 0 }
+	startInBackground = func(io.Writer, io.Writer) int { got = append(got, "background"); return 0 }
+
+	tests := []struct {
+		name     string
+		version  string
+		terminal bool
+		args     []string
+		want     string
+	}{
+		{name: "from a terminal", version: "v0.1.0", terminal: true, want: "background"},
+		{name: "--foreground", version: "v0.1.0", terminal: true, args: []string{"--foreground"}, want: "tray"},
+		{name: "--autostart", version: "v0.1.0", terminal: true, args: []string{"--autostart"}, want: "tray"},
+		{name: "from the app grid", version: "v0.1.0", terminal: false, want: "tray"},
+		{name: "development build", version: "dev", terminal: true, want: "tray"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got = nil
+			version = tt.version
+			startedFromTerminal = func() bool { return tt.terminal }
+			var stdout, stderr bytes.Buffer
+			if code := run(tt.args, strings.NewReader(""), &stdout, &stderr); code != 0 {
+				t.Fatalf("exit code %d (stderr %s)", code, stderr.String())
+			}
+			if len(got) != 1 || got[0] != tt.want {
+				t.Errorf("started %v, want [%s]", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsTerminal(t *testing.T) {
+	null, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer null.Close()
+	if isTerminal(null) {
+		t.Error("/dev/null counts as a terminal")
+	}
+	file, err := os.CreateTemp(t.TempDir(), "plain")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	if isTerminal(file) {
+		t.Error("a plain file counts as a terminal")
 	}
 }

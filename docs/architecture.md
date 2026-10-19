@@ -157,11 +157,24 @@ Rules:
 
 ### Desktop integration
 
+- **Command line:** started from a terminal (stdin and stderr are a
+  terminal), `penguintier` starts `penguintier --foreground` in the
+  background (new session, output to the journal through `systemd-cat
+  --identifier=penguintier`) and returns, so the terminal is free and
+  Ctrl+C doesn't quit the tray. `--foreground` keeps it in the terminal
+  with the log on stderr; `--autostart` and development builds
+  (`version == "dev"`) always stay in the foreground. Log:
+  `journalctl --user -t penguintier`.
 - **Single instance:** the tray owns the session bus name
-  `io.github.rasikhq.Penguintier` (`DoNotQueue`). A second launch shows an
-  "already running" notification (none with `--autostart`) and exits 0.
-  The tray quits when its session bus connection is lost (the user logged
-  out), so no tray without an icon is left running into the next login.
+  `io.github.rasikhq.Penguintier` (`DoNotQueue`) and exports
+  `org.freedesktop.Application` at `/io/github/rasikhq/Penguintier`. A
+  second launch calls its `Activate` (none with `--autostart`) and exits 0;
+  the running tray then shows "Penguintier is already running". The tray
+  quits when its session bus connection is lost (the user logged out), so
+  no tray without an icon is left running into the next login.
+- **Notifications** go out on connections that stay open while the tray
+  runs: GNOME Shell removes an app's notifications as soon as the
+  connection that sent them closes.
 - **Missing tray host:** when nothing has owned
   `org.kde.StatusNotifierWatcher` with `IsStatusNotifierHostRegistered`
   true for 10 seconds, the tray shows one notification with fix steps for

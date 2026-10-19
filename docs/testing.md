@@ -585,8 +585,9 @@ podman exec pt-e2e mount --make-rshared /
   resolved" to "applied", "managed" and back. Without a qualifying
   network the probe never connects.
 - `internal/platform/instance`: a second claim of the D-Bus name is
-  refused, and works again after `Release`; `Lost` is closed when the bus
-  stops (as at logout).
+  refused, and works again after `Release`; `Activate` from a second copy
+  reaches the running one (and fails when none runs); `Lost` is closed
+  when the bus stops (as at logout).
 - `internal/platform/autostart`: write/remove, mode 0644, no leftover
   temporary files, `Hidden=true` and `X-GNOME-Autostart-enabled=false`
   count as off.
@@ -618,7 +619,9 @@ podman exec pt-e2e mount --make-rshared /
   once and can turn on Start at Login, a DNS row change is one `SetTitle`,
   and "Enable DNS support…" (installed, said no, failed).
 - `cmd/penguintier`: the command line (`--version` prints the stamped
-  version), `doctor` exit codes and JSON, `deauthorize` (yes, no, EOF,
+  version; from a terminal a release build moves to the background, but
+  not with `--foreground`, `--autostart` or as a development build),
+  `doctor` exit codes and JSON, `deauthorize` (yes, no, EOF,
   `--yes`, nothing to delete), state.json, the Start at Login rules, the
   pkexec flow with a fake `pkexec` and token helper (0, 126, 127, helper
   exit codes 1 and 3), and the zenity/kdialog question.
@@ -630,8 +633,13 @@ a "first run" without losing yours:
 
 ```
 make build
-XDG_CONFIG_HOME=$(mktemp -d) bin/penguintier
+XDG_CONFIG_HOME=$(mktemp -d) bin/penguintier --foreground
 ```
+
+Without `--foreground`, a release build started from a terminal moves to
+the background and its log goes to the journal
+(`journalctl --user -t penguintier -f`); `make run` and `go run` stay in
+the foreground anyway.
 
 - `bin/penguintier` finds `bin/penguintier-token-helper` next to itself.
   pkexec then shows polkit's generic "run as the super user" prompt,
@@ -669,6 +677,10 @@ are all in place. Quit any running Penguintier first.
    penguintier
    ```
 
+   `penguintier` returns at once with "Penguintier is starting in the
+   system tray" (it moved to the background; Ctrl+C or closing the
+   terminal doesn't quit it).
+
    The polkit prompt "Penguintier needs to read the ZeroTier service's API
    token…" opens by itself. Enter your password: within a few seconds the
    menu shows your address and networks, `ls -l ~/.zeroTierOneAuthToken`
@@ -682,9 +694,11 @@ are all in place. Quit any running Penguintier first.
    prompt (`ps -o args= -C penguintier` shows `penguintier --autostart`).
    Uncheck Start at Login: the autostart file is gone, and stays gone on
    later runs.
-3. **Single instance.** Run `penguintier` again while it runs: a
-   notification "Penguintier is already running", exit code 0
-   (`echo $?`), and still one icon.
+3. **Single instance.** Run `penguintier --foreground` again while it
+   runs: it exits 0 at once (`echo $?`), the running tray shows
+   "Penguintier is already running" (it stays in the notification list),
+   and there is still one icon. Starting it from the app grid does the
+   same.
 4. **Missing tray host.** `gnome-extensions disable
    ubuntu-appindicators@ubuntu.com`: the icon disappears, and about 10 s
    later one notification says the extension is turned off, with the

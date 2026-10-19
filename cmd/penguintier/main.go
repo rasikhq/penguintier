@@ -1,15 +1,17 @@
 // Command penguintier is the Penguintier tray app for ZeroTier.
 //
-//	penguintier [--autostart]          start the tray
-//	penguintier --version              print the version
-//	penguintier doctor [--json]        print a diagnostic report
-//	penguintier deauthorize [--yes]    delete the copied ZeroTier token
+//	penguintier [--autostart] [--foreground]   start the tray
+//	penguintier --version                      print the version
+//	penguintier doctor [--json]                print a diagnostic report
+//	penguintier deauthorize [--yes]            delete the copied ZeroTier token
 //
 // The files of this command:
 //
 //   - main.go: the command line.
 //   - app.go: starting the tray (single instance, first run, the one-time
 //     import, the missing-tray-host notice).
+//   - background.go: moving to the background when started from a
+//     terminal.
 //   - hooks.go: what the tray menu asks of the desktop (tray.Hooks).
 //   - authorize.go: "Authorize Penguintier…" (pkexec + the token helper).
 //   - enabledns.go: "Enable DNS support…" (PackageKit).
@@ -64,13 +66,14 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("penguintier", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	autostart := flags.Bool("autostart", false, "started by the desktop at login (never shows first-run prompts)")
+	foreground := flags.Bool("foreground", false, "stay in this terminal, with the log on stderr (from a terminal it otherwise moves to the background)")
 	showVersion := flags.Bool("version", false, "print the version and exit")
 	flags.Usage = func() {
 		fmt.Fprintln(stderr, "Usage:")
-		fmt.Fprintln(stderr, "  penguintier [--autostart]          start the tray")
-		fmt.Fprintln(stderr, "  penguintier --version              print the version")
-		fmt.Fprintln(stderr, "  penguintier doctor [--json]        print a diagnostic report")
-		fmt.Fprintln(stderr, "  penguintier deauthorize [--yes]    delete the copied ZeroTier token")
+		fmt.Fprintln(stderr, "  penguintier [--autostart] [--foreground]   start the tray")
+		fmt.Fprintln(stderr, "  penguintier --version                      print the version")
+		fmt.Fprintln(stderr, "  penguintier doctor [--json]                print a diagnostic report")
+		fmt.Fprintln(stderr, "  penguintier deauthorize [--yes]            delete the copied ZeroTier token")
 		fmt.Fprintln(stderr, "\nFlags:")
 		flags.PrintDefaults()
 	}
@@ -91,6 +94,9 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if *showVersion {
 		fmt.Fprintf(stdout, "penguintier %s\n", version)
 		return 0
+	}
+	if inBackground(*autostart, *foreground) {
+		return startInBackground(stdout, stderr)
 	}
 	return startTray(*autostart, stderr)
 }

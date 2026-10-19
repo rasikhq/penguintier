@@ -40,12 +40,15 @@ var startTray = func(autostartRun bool, stderr io.Writer) int {
 
 // runTray does the start-up steps, then shows the tray.
 func runTray(ctx context.Context, autostartRun bool) error {
-	// 1. Only one copy. A second one says so and quits (exit code 0).
+	// 1. Only one copy. A second one asks the running copy to say so,
+	// and quits (exit code 0).
 	lock, err := instance.Claim()
 	if errors.Is(err, instance.ErrAlreadyRunning) {
 		slog.Info("Penguintier is already running")
 		if !autostartRun {
-			notifyAlreadyRunning(ctx)
+			if err := instance.Activate(ctx); err != nil {
+				slog.Warn("cannot reach the running Penguintier", "err", err)
+			}
 		}
 		return nil
 	}
@@ -112,9 +115,24 @@ func runTray(ctx context.Context, autostartRun bool) error {
 		}
 	}()
 
-	// 6. Tell the user once per login if no tray host shows the icon. The
-	// goroutine ends with the tray.
-	go noticeMissingTrayHost(trayCtx)
+	// 6. One notification connection for Penguintier's own notices, open
+	// as long as the tray runs. It has to stay open: GNOME removes an
+	// app's notifications as soon as the connection that sent them closes.
+	// Without a notification service the notices are only logged.
+	notifier, err := notify.New()
+	if err != nil {
+		slog.Warn("notifications are off", "err", err) // notifier is nil then
+	} else {
+		defer notifier.Close()
+	}
+
+	// 7. Answer "already running" for copies started later, and tell the
+	// user once per login if no tray host shows the icon. Both goroutines
+	// end with the tray. They share the notifier, which is safe: it is a
+	// D-Bus connection, and godbus connections may be used by several
+	// goroutines at once.
+	go answerActivations(trayCtx, lock.Activations(), notifier)
+	go noticeMissingTrayHost(trayCtx, notifier)
 
 	cfg := tray.Config{Version: version, Hooks: hooks, PromptAuthorize: prompt}
 	if version == "dev" {
@@ -144,27 +162,40 @@ func importDesktopUI(state *appState) {
 	state.DesktopUIImported = true
 }
 
-// notifyAlreadyRunning tells the user that the tray is already there.
-func notifyAlreadyRunning(ctx context.Context) {
-	n, err := notify.New()
-	if err != nil {
-		slog.Warn("cannot show a notification", "err", err)
-		return
+// answerActivations shows "already running" each time the user starts
+// Penguintier again while it runs (see instance.Activate).
+func answerActivations(ctx context.Context, activations <-chan struct{}, n *notify.Notifier) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-activations:
+			showNotice(ctx, n, notify.Notification{
+				Summary: "Penguintier is already running",
+				Body:    "Its icon is in the system tray. If you can't see it, run “penguintier doctor” in a terminal.",
+			})
+		}
 	}
-	defer n.Close()
-	_, err = n.Notify(ctx, notify.Notification{
-		Summary: "Penguintier is already running",
-		Body:    "Its icon is in the system tray. If you can't see it, run “penguintier doctor” in a terminal.",
-	})
-	if err != nil {
-		slog.Warn("cannot show a notification", "err", err)
+}
+
+// showNotice shows a notification and reports whether that worked. n may
+// be nil (no notification service); then the message is only logged.
+func showNotice(ctx context.Context, n *notify.Notifier, msg notify.Notification) bool {
+	if n == nil {
+		slog.Info("notification", "summary", msg.Summary, "body", msg.Body)
+		return false
 	}
+	if _, err := n.Notify(ctx, msg); err != nil {
+		slog.Warn("cannot show a notification", "summary", msg.Summary, "err", err)
+		return false
+	}
+	return true
 }
 
 // noticeMissingTrayHost waits until no tray host has shown up for the
 // grace period, then shows one notification with fix steps for this
 // desktop. It shows it at most once per login (watcher.NoticeShown).
-func noticeMissingTrayHost(ctx context.Context) {
+func noticeMissingTrayHost(ctx context.Context, n *notify.Notifier) {
 	// dbus.SessionBus is the connection the tray icon library also uses;
 	// it must not be closed.
 	conn, err := dbus.SessionBus()
@@ -192,19 +223,12 @@ func noticeMissingTrayHost(ctx context.Context) {
 	advice := watcher.AdviceFor(desktop, watcher.CheckExtension(ctx, conn))
 	slog.Warn("no tray host: the icon is invisible", "desktop", desktop.String(), "advice", advice.Text())
 
-	n, err := notify.New()
-	if err != nil {
-		slog.Warn("cannot show a notification", "err", err)
-		return
-	}
-	defer n.Close()
-	_, err = n.Notify(ctx, notify.Notification{
+	shown := showNotice(ctx, n, notify.Notification{
 		Summary: "Penguintier is running, but its icon can't be shown",
 		Body:    advice.Text() + "\nThe icon then appears by itself.",
 	})
-	if err != nil {
-		slog.Warn("cannot show a notification", "err", err)
-		return
+	if !shown {
+		return // not remembered, so the next run tries again
 	}
 	if err := watcher.RememberNoticeShown(login); err != nil {
 		slog.Warn("cannot remember the tray notice", "err", err)
