@@ -317,8 +317,9 @@ sudo apt remove penguintier      # Debian, Ubuntu, Mint
 sudo dnf remove penguintier      # Fedora
 ```
 
-Removing the package stops the DNS service, which takes its DNS settings
-with it. If you used Enable DNS support… and want your old DNS setup back,
+Quit Penguintier from its menu first, since removing the package doesn't
+stop a tray that is already running. Removing it does stop the DNS
+service, which takes its DNS settings with it. If you used Enable DNS support… and want your old DNS setup back,
 [undo it](#enable-dns-support-debian) before uninstalling.
 
 Your settings stay behind in `~/.config/penguintier/`, along with the Start
