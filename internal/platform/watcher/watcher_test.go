@@ -23,9 +23,9 @@ ID=ubuntu
 ID_LIKE=debian
 VERSION_CODENAME='noble'
 `)
-	got := parseOSRelease(data)
+	got := ParseOSRelease(data)
 	if got.ID != "ubuntu" || got.PrettyName != "Ubuntu 24.04.1 LTS" || len(got.IDLike) != 1 || got.IDLike[0] != "debian" {
-		t.Errorf("parseOSRelease = %+v", got)
+		t.Errorf("ParseOSRelease = %+v", got)
 	}
 
 	families := map[string]OSRelease{

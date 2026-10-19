@@ -63,15 +63,15 @@ var osReleasePaths = []string{"/etc/os-release", "/usr/lib/os-release"}
 func ReadOSRelease() OSRelease {
 	for _, path := range osReleasePaths {
 		if data, err := os.ReadFile(path); err == nil { //nolint:gosec // fixed system paths
-			return parseOSRelease(data)
+			return ParseOSRelease(data)
 		}
 	}
 	return OSRelease{}
 }
 
-// parseOSRelease reads KEY=value lines. Values may be in double or single
-// quotes (os-release(5)).
-func parseOSRelease(data []byte) OSRelease {
+// ParseOSRelease reads an os-release file's KEY=value lines. Values may
+// be in double or single quotes (os-release(5)).
+func ParseOSRelease(data []byte) OSRelease {
 	var o OSRelease
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
