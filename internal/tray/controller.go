@@ -13,6 +13,7 @@ import (
 	"github.com/rasikhq/penguintier/internal/platform/clipboard"
 	"github.com/rasikhq/penguintier/internal/platform/notify"
 	"github.com/rasikhq/penguintier/internal/platform/open"
+	"github.com/rasikhq/penguintier/internal/platform/watcher"
 	"github.com/rasikhq/penguintier/internal/ztapi"
 )
 
@@ -26,6 +27,10 @@ const joinTimeout = 2 * time.Minute
 // clickQueueSize is how many clicks can wait while the controller is busy
 // (for example during a slow API call). People don't click that fast.
 const clickQueueSize = 32
+
+// hostCheckTimeout bounds the bus calls of detectTrayHost. They run on the
+// controller goroutine, so a stuck bus must not stall the menu.
+const hostCheckTimeout = 2 * time.Second
 
 // notifier shows desktop notifications. *notify.Notifier is the real one.
 type notifier interface {
@@ -168,8 +173,8 @@ func newController(cfg Config, backend Backend, store *ztapi.SavedStore,
 	return c, nil
 }
 
-// detectTrayHost asks the session bus which label style the tray host
-// uses (see labels.go).
+// detectTrayHost asks the session bus which program owns the tray host
+// name, and picks the label style for it (see labels.go).
 func detectTrayHost() (labelStyle, bool) {
 	// dbus.SessionBus is one connection shared with the tray library; it
 	// must not be closed.
@@ -177,7 +182,13 @@ func detectTrayHost() (labelStyle, bool) {
 	if err != nil {
 		return labelStyleSpec, false
 	}
-	return trayHostStyle(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), hostCheckTimeout)
+	defer cancel()
+	status, err := watcher.Check(ctx, conn)
+	if err != nil {
+		return labelStyleSpec, false // can't tell now: ask again next time
+	}
+	return hostStyle(status)
 }
 
 // run is the controller goroutine. It returns when ctx is cancelled or

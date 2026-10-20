@@ -62,14 +62,14 @@ Fixtures are in `internal/ztapi/testdata/`:
 
 | Directory | What |
 |---|---|
-| `1.16.2/` | Real replies from ZeroTier One 1.16.2 (`/status`, `/network`, `/peer`), with node IDs, network IDs, IPs and MACs replaced by fake ones. |
+| `1.16.2/` | Real replies from ZeroTier One 1.16.2 (`/status`, `/network`), with node IDs, network IDs, IPs and MACs replaced by fake ones. |
 | `handmade/` | Cases a single node rarely shows: SSO, access denied, IPv6, several networks with unknown fields and `"via": null`, and a DesktopUI `saved_networks.json`. |
 
 To refresh the real fixtures after a ZeroTier upgrade, capture them (only
 `cat` runs as root, and the files are private to you):
 
 ```
-(umask 077; T=$(sudo cat /var/lib/zerotier-one/authtoken.secret); mkdir -p /tmp/zt-capture; for p in status network peer; do curl -s -H "X-ZT1-Auth: $T" "http://127.0.0.1:9993/$p" > "/tmp/zt-capture/$p.json"; done)
+(umask 077; T=$(sudo cat /var/lib/zerotier-one/authtoken.secret); mkdir -p /tmp/zt-capture; for p in status network; do curl -s -H "X-ZT1-Auth: $T" "http://127.0.0.1:9993/$p" > "/tmp/zt-capture/$p.json"; done)
 ```
 
 Then replace every node ID, network ID, IP address and MAC with a fake
@@ -153,8 +153,8 @@ rm ~/.zeroTierOneAuthToken
 They use the real service and need the token copy above. Without one they
 skip.
 
-- `TestLiveReadOnly` calls `/health`, `/status`, `/network`,
-  `/network/{id}` and `/peer`, and changes nothing.
+- `TestLiveReadOnly` calls `/health`, `/status`, `/network` and
+  `/network/{id}`, and changes nothing.
 - `TestLiveJoinToggleLeave` runs only with `PENGUINTIER_LIVE_JOIN=1`. It
   joins a throwaway network, toggles all four flags, and leaves. The default
   ID is your node address + `dead01`: a network that doesn't exist on your
@@ -272,8 +272,8 @@ Icons:
   action, Authorize, the About fallback, Quit.
 - For underscores in labels (see below), `TestEscapeLabel*` check the
   escaping against both host behaviors, for every label of every golden
-  menu. `TestTrayHostStyle` runs the host detection on a private
-  `dbus-daemon`.
+  menu, and `TestHostStyle` maps the host's program name to a style. The
+  bus lookup itself is `watcher.Check` (see "Desktop integration").
 - For the Join dialog, fake `penguintier-ui`, `zenity` and `kdialog` scripts
   check exit codes (0 = ID, 1 = cancel, other = try the next one), the
   `join` argument and `WEBKIT_DISABLE_DMABUF_RENDERER=1`. `TestFindHelper`
@@ -858,7 +858,7 @@ What goes in, and where it comes from (`cmd/licensegen` puts it together):
 | Part | Which components | How they are found |
 |---|---|---|
 | Go standard library | the Go that builds the programs | `LICENSE` in `$(go env GOROOT)` |
-| Go modules | every package compiled into `penguintier`, `penguintier-dnsd`, `penguintier-token-helper` (root module) and `penguintier-ui` (`ui/` module) | `go-licenses report` lists them and their license files, the same tool as `make licenses`. For `ui/` it uses the build tags of the real build (`UI_GO_TAGS` in the Makefile), so it sees the same packages as `wails build`. |
+| Go modules | every package compiled into `penguintier`, `penguintier-dnsd`, `penguintier-token-helper`, `penguintier-dns-helper` (root module) and `penguintier-ui` (`ui/` module) | `go-licenses report` lists them and their license files, the same tool as `make licenses`. For `ui/` it uses the build tags of the real build (`UI_GO_TAGS` in the Makefile), so it sees the same packages as `wails build`. |
 | JavaScript | what Vite bundles into the Join/About windows: `dependencies` in `ui/frontend/package.json` and theirs, recursively (React, react-dom, scheduler) | read from `ui/frontend/node_modules` (installed with `bun install --frozen-lockfile`, so it matches `bun.lock`): `package.json` and the `LICENSE`/`COPYING`/`NOTICE` files |
 
 The file is made from the dependencies as they are, so adding a dependency

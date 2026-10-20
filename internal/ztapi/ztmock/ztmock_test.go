@@ -83,10 +83,6 @@ func TestScenarios(t *testing.T) {
 		if err != nil || n.ID != nets[0].ID {
 			t.Errorf("Network(%s) = %+v, %v", nets[0].ID, n, err)
 		}
-		peers, err := c.Peers(ctx)
-		if err != nil || len(peers) != 3 {
-			t.Errorf("Peers = %d peers, %v; want 3", len(peers), err)
-		}
 	})
 
 	t.Run("wrong token", func(t *testing.T) {

@@ -163,18 +163,6 @@ func TestClientEndpoints(t *testing.T) {
 				}
 			},
 		},
-		{
-			name:   "Peers",
-			reply:  `[{"address":"1111111111","role":"PLANET","latency":42,"paths":[{"address":"192.0.2.1/9993","active":true,"preferred":true}]}]`,
-			call:   func(c *Client) (any, error) { return c.Peers(ctx) },
-			method: "GET", path: "/peer", wantToken: true,
-			check: func(t *testing.T, result any) {
-				peers := result.([]Peer)
-				if len(peers) != 1 || peers[0].Role != "PLANET" || !peers[0].Paths[0].Preferred {
-					t.Errorf("Peers = %+v", peers)
-				}
-			},
-		},
 	}
 
 	for _, tc := range tests {
@@ -211,7 +199,6 @@ func TestClientWithRealFixtures(t *testing.T) {
 		"/status":                   "1.16.2/status.json",
 		"/network":                  "1.16.2/network.json",
 		"/network/a1b2c3d4e5dead01": "1.16.2/network-requesting-configuration.json",
-		"/peer":                     "1.16.2/peer.json",
 	}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		name, ok := files[r.URL.Path]
@@ -233,9 +220,6 @@ func TestClientWithRealFixtures(t *testing.T) {
 	}
 	if n, err := c.Network(ctx, "a1b2c3d4e5dead01"); err != nil || n.Status != StatusRequestingConfiguration {
 		t.Errorf("Network = %+v, %v", n, err)
-	}
-	if peers, err := c.Peers(ctx); err != nil || len(peers) != 4 {
-		t.Errorf("Peers = %d peers, %v", len(peers), err)
 	}
 }
 

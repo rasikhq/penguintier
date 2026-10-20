@@ -19,8 +19,9 @@ import (
 // machine, so a healthy one replies in milliseconds.
 const DefaultTimeout = 2 * time.Second
 
-// maxBodySize caps how much of a reply we read (4 MiB). A /peer reply on a
-// busy node is a few hundred KiB.
+// maxBodySize caps how much of a reply we read (4 MiB): far more than a
+// /network reply with many networks needs, and a limit in case the server
+// misbehaves.
 const maxBodySize = 4 << 20
 
 // Client talks to one ZeroTier One service. Create it with Discover or New.
@@ -195,13 +196,6 @@ func (c *Client) SetFlags(ctx context.Context, id NetworkID, flags map[Flag]bool
 	}
 	err := c.do(ctx, http.MethodPost, "/network/"+id.String(), flags, &n, true)
 	return n, err
-}
-
-// Peers calls GET /peer: the other ZeroTier nodes this node talks to.
-func (c *Client) Peers(ctx context.Context) ([]Peer, error) {
-	var peers []Peer
-	err := c.do(ctx, http.MethodGet, "/peer", nil, &peers, true)
-	return peers, err
 }
 
 // do sends one request and decodes the JSON reply into out (a pointer), or

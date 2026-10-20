@@ -1,11 +1,9 @@
 package tray
 
 import (
-	"fmt"
-	"os"
 	"strings"
 
-	"github.com/godbus/dbus/v5"
+	"github.com/rasikhq/penguintier/internal/platform/watcher"
 )
 
 // Underscores in menu labels
@@ -68,30 +66,18 @@ func firstMnemonicUnderscore(s string) int {
 	return -1
 }
 
-// trayHostStyle finds out which label style the running tray host uses.
-// found is false when no tray host is running (yet); then the caller
-// should ask again later.
+// hostStyle picks the label style for the tray host that watcher.Check
+// found. found is false when nothing owns org.kde.StatusNotifierWatcher
+// (yet); then the caller asks again later.
 //
-// The tray host is whoever owns the D-Bus name
-// org.kde.StatusNotifierWatcher. On GNOME that is the gnome-shell process
-// itself, because the AppIndicator extension runs inside it.
-func trayHostStyle(conn *dbus.Conn) (style labelStyle, found bool) {
-	bus := conn.BusObject() // the bus's own object, org.freedesktop.DBus
-
-	var owner string
-	if err := bus.Call("org.freedesktop.DBus.GetNameOwner", 0, "org.kde.StatusNotifierWatcher").Store(&owner); err != nil {
+// On GNOME the owner is the gnome-shell process itself, because the
+// AppIndicator extension runs inside it. Any other host, or one whose
+// program name can't be read, gets the spec style.
+func hostStyle(status watcher.Status) (style labelStyle, found bool) {
+	if !status.Watcher {
 		return labelStyleSpec, false
 	}
-	var pid uint32
-	if err := bus.Call("org.freedesktop.DBus.GetConnectionUnixProcessID", 0, owner).Store(&pid); err != nil {
-		return labelStyleSpec, true // a host runs, but we can't tell which
-	}
-	// /proc/<pid>/comm holds a process's program name, e.g. "gnome-shell\n".
-	comm, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
-	if err != nil {
-		return labelStyleSpec, true
-	}
-	if strings.TrimSpace(string(comm)) == "gnome-shell" {
+	if status.Program == "gnome-shell" {
 		return labelStyleGNOME, true
 	}
 	return labelStyleSpec, true

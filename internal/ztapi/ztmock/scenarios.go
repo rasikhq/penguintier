@@ -218,32 +218,3 @@ func subnetFor(id ztapi.NetworkID) string {
 	y, _ := strconv.ParseUint(s[14:16], 16, 8)
 	return fmt.Sprintf("10.%d.%d", x, y)
 }
-
-// peers returns the fake peer list: two root servers and one other node.
-func peers(now time.Time) []ztapi.Peer {
-	ms := now.UnixMilli()
-	return []ztapi.Peer{
-		{
-			Address: "1111111111", Role: "PLANET", Latency: 42,
-			Version: "-1.-1.-1", VersionMajor: -1, VersionMinor: -1, VersionRev: -1,
-			Paths: []ztapi.PeerPath{
-				{Address: "192.0.2.1/9993", Active: true, Preferred: true, LastSend: ms - 1000, LastReceive: ms - 900},
-				{Address: "2001:db8::1/9993", Active: true, LastSend: ms - 1000, LastReceive: ms - 950},
-			},
-		},
-		{
-			Address: "2222222222", Role: "PLANET", Latency: 118,
-			Version: "-1.-1.-1", VersionMajor: -1, VersionMinor: -1, VersionRev: -1,
-			Paths: []ztapi.PeerPath{
-				{Address: "198.51.100.2/9993", Active: true, Preferred: true, LastSend: ms - 2000, LastReceive: ms - 1900},
-			},
-		},
-		{
-			Address: "c0ffee1234", Role: "LEAF", Latency: 7,
-			Version: "1.16.2", VersionMajor: 1, VersionMinor: 16, VersionRev: 2,
-			Paths: []ztapi.PeerPath{
-				{Address: "203.0.113.50/41641", Active: true, Preferred: true, LastSend: ms - 300, LastReceive: ms - 250},
-			},
-		},
-	}
-}

@@ -33,7 +33,7 @@ before:
     # The man page, gzipped (bin/penguintier.1.gz).
     - make man
 
-# The three Go programs, all static (no cgo).
+# The four Go programs, all static (no cgo).
 #   ldflags: -s -w drop debug symbols (smaller binaries); -X sets main.version.
 #   mod_timestamp: use the commit time as file time, so the same commit
 #     always gives the same files.

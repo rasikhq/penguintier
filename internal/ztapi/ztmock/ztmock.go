@@ -106,7 +106,6 @@ func New(scenario string) (*Server, error) {
 	s.mux.HandleFunc("GET /network/{id}", s.handleNetwork)
 	s.mux.HandleFunc("POST /network/{id}", s.handleJoinOrSet)
 	s.mux.HandleFunc("DELETE /network/{id}", s.handleLeave)
-	s.mux.HandleFunc("GET /peer", s.handlePeers)
 
 	if err := s.SetScenario(scenario); err != nil {
 		return nil, err
@@ -290,10 +289,6 @@ func (s *Server) handleLeave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"result": true})
-}
-
-func (s *Server) handlePeers(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, peers(s.Now()))
 }
 
 // timing returns how joins develop in the current scenario. Call it with

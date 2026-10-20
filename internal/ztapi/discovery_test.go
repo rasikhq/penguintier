@@ -317,20 +317,6 @@ func TestCheckPrivateFile(t *testing.T) {
 	}
 }
 
-func TestFixTokenFileMode(t *testing.T) {
-	home := setTestHome(t)
-	p := writeTokenFile(t, home, UserTokenFileName, "aaaaaaaaaaaaaaaaaaaaaaaa", 0o644)
-	if _, err := ReadTokenFile(p); !isFixableInsecure(err) {
-		t.Fatalf("before the fix: err = %v, want a fixable *InsecureTokenFileError", err)
-	}
-	if err := FixTokenFileMode(p); err != nil {
-		t.Fatalf("FixTokenFileMode: %v", err)
-	}
-	if _, err := ReadTokenFile(p); err != nil {
-		t.Fatalf("after the fix: %v", err)
-	}
-}
-
 func TestPort(t *testing.T) {
 	tests := []struct {
 		name    string

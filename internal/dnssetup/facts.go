@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -230,8 +229,8 @@ func dpkgStatus(path string, wanted []string) map[string]string {
 func inspectResolvConf(path string) ResolvConfInfo {
 	var info ResolvConfInfo
 	st, err := os.Lstat(path)
-	if errors.Is(err, fs.ErrNotExist) || err != nil {
-		return info
+	if err != nil {
+		return info // missing, or not readable: not there for our purposes
 	}
 	info.Exists = true
 	if st.Mode()&fs.ModeSymlink != 0 {

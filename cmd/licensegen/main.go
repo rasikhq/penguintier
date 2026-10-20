@@ -99,7 +99,7 @@ func collect(goroot, npmDir string, goReports []string) ([]section, error) {
 		},
 		{
 			title:      "Go modules",
-			intro:      "The libraries that penguintier, penguintier-dnsd, penguintier-token-helper and penguintier-ui are built from.",
+			intro:      "The libraries that penguintier, penguintier-dnsd, penguintier-token-helper, penguintier-dns-helper and penguintier-ui are built from.",
 			components: modules,
 		},
 		{

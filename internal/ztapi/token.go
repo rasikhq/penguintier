@@ -66,13 +66,3 @@ func WriteUserToken(token string) (string, error) {
 	}
 	return path, nil
 }
-
-// FixTokenFileMode makes a token file readable by its owner only (chmod
-// 600). Use it when ReadTokenFile returned an *InsecureTokenFileError whose
-// Fixable method reports true.
-func FixTokenFileMode(path string) error {
-	if err := os.Chmod(path, 0o600); err != nil {
-		return fmt.Errorf("chmod 600 %s: %w", path, err)
-	}
-	return nil
-}

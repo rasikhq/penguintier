@@ -1,15 +1,11 @@
 package tray
 
 import (
-	"bufio"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/godbus/dbus/v5"
+	"github.com/rasikhq/penguintier/internal/platform/watcher"
 )
 
 // The two ways tray hosts read underscores, written the way the hosts do
@@ -113,83 +109,27 @@ func TestEscapeLabelRoundTrip(t *testing.T) {
 	}
 }
 
-// TestTrayHostStyle runs trayHostStyle against a private D-Bus daemon.
-// The test process itself owns the tray host name there, so the host's
-// program name is this test binary: not gnome-shell, so spec style.
-func TestTrayHostStyle(t *testing.T) {
-	address := startBus(t)
-	conn, err := dbus.Connect(address)
-	if err != nil {
-		t.Fatal(err)
+// TestHostStyle maps what watcher.Check found to a label style: GNOME
+// Shell's own process gets the GNOME style, every other host the spec
+// style, and no host at all means "ask again later".
+func TestHostStyle(t *testing.T) {
+	tests := []struct {
+		name      string
+		status    watcher.Status
+		wantStyle labelStyle
+		wantFound bool
+	}{
+		{name: "no host", status: watcher.Status{}, wantStyle: labelStyleSpec, wantFound: false},
+		{name: "gnome-shell", status: watcher.Status{Watcher: true, HostRegistered: true, Program: "gnome-shell"}, wantStyle: labelStyleGNOME, wantFound: true},
+		{name: "plasmashell", status: watcher.Status{Watcher: true, HostRegistered: true, Program: "plasmashell"}, wantStyle: labelStyleSpec, wantFound: true},
+		{name: "program unknown", status: watcher.Status{Watcher: true}, wantStyle: labelStyleSpec, wantFound: true},
 	}
-	defer conn.Close()
-
-	if _, found := trayHostStyle(conn); found {
-		t.Fatal("found a tray host on an empty bus")
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			style, found := hostStyle(tc.status)
+			if style != tc.wantStyle || found != tc.wantFound {
+				t.Errorf("hostStyle(%+v) = %v, %t; want %v, %t", tc.status, style, found, tc.wantStyle, tc.wantFound)
+			}
+		})
 	}
-
-	reply, err := conn.RequestName("org.kde.StatusNotifierWatcher", dbus.NameFlagDoNotQueue)
-	if err != nil || reply != dbus.RequestNameReplyPrimaryOwner {
-		t.Fatalf("own the watcher name: reply %v, err %v", reply, err)
-	}
-	style, found := trayHostStyle(conn)
-	if !found || style != labelStyleSpec {
-		t.Errorf("trayHostStyle = %v, %v; want spec style, found", style, found)
-	}
-}
-
-// startBus runs a private dbus-daemon for one test and returns its
-// address. The test is skipped when dbus-daemon is not installed.
-// (internal/platform/notify's tests have the same helper.)
-func startBus(t *testing.T) string {
-	t.Helper()
-	daemon, err := exec.LookPath("dbus-daemon")
-	if err != nil {
-		t.Skip("dbus-daemon not installed")
-	}
-
-	// A socket path may be at most 108 bytes, and t.TempDir() can be
-	// longer, so the socket goes in a short directory under /tmp.
-	dir, err := os.MkdirTemp("/tmp", "pt-bus-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dir) })
-
-	config := `<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN"
- "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">
-<busconfig>
-  <type>session</type>
-  <listen>unix:path=` + filepath.Join(dir, "bus") + `</listen>
-  <auth>EXTERNAL</auth>
-  <policy context="default">
-    <allow send_destination="*"/>
-    <allow receive_sender="*"/>
-    <allow own="*"/>
-  </policy>
-</busconfig>
-`
-	configPath := filepath.Join(dir, "bus.conf")
-	if err := os.WriteFile(configPath, []byte(config), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	cmd := exec.CommandContext(t.Context(), daemon, "--config-file="+configPath, "--nofork", "--print-address")
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := cmd.Start(); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		_ = cmd.Process.Kill()
-		_ = cmd.Wait()
-	})
-
-	line, err := bufio.NewReader(stdout).ReadString('\n')
-	if err != nil {
-		t.Fatalf("read dbus-daemon address: %v", err)
-	}
-	return strings.TrimSpace(line)
 }

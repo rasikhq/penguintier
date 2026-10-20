@@ -72,17 +72,6 @@ func TestLiveReadOnly(t *testing.T) {
 			t.Errorf("Network(%s) = %s %s, list says %s %s", n.ID, one.ID, one.Status, n.ID, n.Status)
 		}
 	}
-
-	peers, err := c.Peers(ctx)
-	if err != nil {
-		t.Fatalf("Peers: %v", err)
-	}
-	t.Logf("%d peers", len(peers))
-	for _, p := range peers {
-		if len(p.Address) != 10 {
-			t.Errorf("peer address %q is not 10 characters", p.Address)
-		}
-	}
 }
 
 // TestLiveJoinToggleLeave joins a throwaway network, toggles its flags and

@@ -3,8 +3,8 @@
 //
 // What is in here:
 //
-//   - models.go: the JSON shapes the service sends (NodeStatus, Network,
-//     Peer, ...), the NetworkID type and the network Status type.
+//   - models.go: the JSON shapes the service sends (Health, NodeStatus,
+//     Network), the NetworkID type and the network Status type.
 //   - errors.go: the errors callers can check with errors.Is / errors.As.
 //   - discovery.go: where the API listens (port file, 127.0.0.1 then [::1])
 //     and where the API token is (see "ZeroTier API token" in

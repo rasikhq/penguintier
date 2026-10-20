@@ -106,8 +106,9 @@ func (e *InsecureTokenFileError) Error() string {
 		e.Path, e.Mode.Perm(), e.Path)
 }
 
-// Fixable reports whether FixTokenFileMode can fix the problem: the file is
-// ours and only its permissions are too open.
+// Fixable reports whether "chmod 600" fixes the problem: the file is ours
+// and only its permissions are too open. A file that belongs to someone
+// else needs a fresh copy instead ("Authorize Penguintier…").
 func (e *InsecureTokenFileError) Fixable() bool {
 	return e.OwnerUID == e.WantUID
 }

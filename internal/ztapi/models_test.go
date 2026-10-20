@@ -197,24 +197,6 @@ func TestRealFixtures(t *testing.T) {
 		}
 	})
 
-	t.Run("peer", func(t *testing.T) {
-		var peers []Peer
-		mustDecode(t, readFixture(t, "1.16.2/peer.json"), &peers)
-		if len(peers) != 4 {
-			t.Fatalf("got %d peers, want 4", len(peers))
-		}
-		for _, p := range peers {
-			if p.Role != "PLANET" || len(p.Address) != 10 || p.Latency <= 0 || p.VersionMajor != -1 {
-				t.Errorf("peer = %+v", p)
-			}
-			for _, path := range p.Paths {
-				if path.Address == "" || path.LastReceive == 0 {
-					t.Errorf("peer %s path = %+v", p.Address, path)
-				}
-			}
-		}
-	})
-
 	t.Run("network list", func(t *testing.T) {
 		var nets []Network
 		mustDecode(t, readFixture(t, "1.16.2/network.json"), &nets)

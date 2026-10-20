@@ -241,31 +241,6 @@ type DNS struct {
 	Servers []string `json:"servers"` // IP addresses
 }
 
-// Peer is one entry of GET /peer: another ZeroTier node this one talks to.
-type Peer struct {
-	Address      string     `json:"address"` // 10 hex characters
-	Role         string     `json:"role"`    // "LEAF", "MOON" or "PLANET"
-	Latency      int        `json:"latency"` // milliseconds, -1 if unknown
-	Version      string     `json:"version"` // "-1.-1.-1" if unknown
-	VersionMajor int        `json:"versionMajor"`
-	VersionMinor int        `json:"versionMinor"`
-	VersionRev   int        `json:"versionRev"`
-	IsBonded     bool       `json:"isBonded"`
-	Tunneled     bool       `json:"tunneled"`
-	Paths        []PeerPath `json:"paths"`
-}
-
-// PeerPath is one physical path (IP address and port) to a peer.
-type PeerPath struct {
-	Address       string `json:"address"` // "ip/port", e.g. "192.0.2.10/9993"
-	Active        bool   `json:"active"`
-	Expired       bool   `json:"expired"`
-	Preferred     bool   `json:"preferred"`
-	LastSend      int64  `json:"lastSend"`    // Unix milliseconds
-	LastReceive   int64  `json:"lastReceive"` // Unix milliseconds
-	TrustedPathID uint64 `json:"trustedPathId"`
-}
-
 // Flag names one of the four per-network "Allow ..." settings. The values
 // are the service's JSON keys, so a map[Flag]bool encodes straight into a
 // request body such as {"allowDNS":true}.
