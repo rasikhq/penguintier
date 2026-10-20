@@ -136,7 +136,7 @@ built without it). Make the test network at my.zerotier.com instead (free):
   5. Check that the node sees it (status OK, DNS domain $domain):
        go run ./cmd/ztctl list
 
-Then follow "End-to-end test" in the P4 section of docs/testing.md, using that
+Then follow "End-to-end test" under "DNS daemon" in docs/testing.md, using that
 IP wherever it says $node_ip.
 EOF
 }
@@ -193,7 +193,7 @@ cmd_up() {
 		"  allowDNS:   \(.allowDNS)"' <<<"$reply"
 	cat <<EOF
 
-Next (see the P4 section of docs/testing.md):
+Next (see "End-to-end test" under "DNS daemon" in docs/testing.md):
   # something that answers DNS for $domain on $node_ip, for example dnsmasq:
   sudo dnsmasq --no-daemon --no-resolv --no-hosts --bind-interfaces \\
        --listen-address=$node_ip --address=/host.$domain/$node_ip &

@@ -12,8 +12,8 @@ The tray starts it on demand:
 | `penguintier-ui join` | Prints the 16-hex-digit network ID on stdout, exit 0. Cancel or close: exit 1. |
 | `penguintier-ui about` | Exit 0 when closed. |
 
-Phase P2 owns this directory. See `docs/architecture.md` ("UI process")
-and the P2 section of `docs/testing.md`.
+See `docs/architecture.md` ("UI process") and "Join and About windows" in
+`docs/testing.md`.
 
 ## Develop
 

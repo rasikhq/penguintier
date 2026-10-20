@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"syscall"
 	"time"
+
+	"github.com/rasikhq/penguintier/internal/atomicfile"
 )
 
 // HelperPath is where the packages install penguintier-dns-helper. pkexec
@@ -122,7 +124,7 @@ func (s Store) Load() (*Manifest, error) {
 	return &m, nil
 }
 
-// Save writes the manifest atomically (a temporary file, then a rename).
+// Save writes the manifest atomically (see internal/atomicfile).
 func (s Store) Save(m *Manifest) error {
 	m.Version = manifestVersion
 	m.Updated = time.Now().UTC()
@@ -130,7 +132,7 @@ func (s Store) Save(m *Manifest) error {
 	if err != nil {
 		return fmt.Errorf("encode the DNS switch manifest: %w", err)
 	}
-	return writeAtomic(filepath.Join(s.dir(), manifestName), append(data, '\n'), 0o644, -1, -1)
+	return atomicfile.WriteFile(filepath.Join(s.dir(), manifestName), append(data, '\n'), 0o644)
 }
 
 // Backup copies every file in AffectedFiles into the backup folder and
@@ -172,7 +174,7 @@ func (s Store) Backup(checkName string) (*Manifest, error) {
 			}
 			fb.Copy = filepath.Base(p)
 			fb.SHA256 = checksum(data)
-			if err := writeAtomic(filepath.Join(s.dir(), fb.Copy), data, info.Mode().Perm(), -1, -1); err != nil {
+			if err := atomicfile.WriteFile(filepath.Join(s.dir(), fb.Copy), data, info.Mode().Perm()); err != nil {
 				return nil, fmt.Errorf("back up %s: %w", p, err)
 			}
 		default:
@@ -226,7 +228,7 @@ func (s Store) restoreFile(fb FileBackup) error {
 		if checksum(data) != fb.SHA256 {
 			return errors.New("the backup copy is damaged (checksum mismatch)")
 		}
-		if err := writeAtomic(target, data, fs.FileMode(fb.Mode), fb.UID, fb.GID); err != nil {
+		if err := atomicfile.WriteFileOwner(target, data, fs.FileMode(fb.Mode), fb.UID, fb.GID); err != nil {
 			return err
 		}
 		// Prove it: read back what is there now.
@@ -245,41 +247,4 @@ func (s Store) restoreFile(fb FileBackup) error {
 func checksum(data []byte) string {
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
-}
-
-// writeAtomic replaces path with data: it writes a temporary file in the
-// same folder, sets its mode (and owner, unless uid is -1), then renames
-// it over path. A reader sees the old file or the new one, never half of
-// one, and a symbolic link at path is replaced, not followed.
-func writeAtomic(path string, data []byte, mode fs.FileMode, uid, gid int) (err error) {
-	tmp, err := os.CreateTemp(filepath.Dir(path), "."+filepath.Base(path)+".tmp-*")
-	if err != nil {
-		return err
-	}
-	// The named result err lets this deferred function see whether we are
-	// failing, and clean up the temporary file then.
-	defer func() {
-		if err != nil {
-			_ = tmp.Close()           // may be closed already
-			_ = os.Remove(tmp.Name()) // best effort
-		}
-	}()
-	if _, err = tmp.Write(data); err != nil {
-		return err
-	}
-	if err = tmp.Chmod(mode); err != nil {
-		return err
-	}
-	if uid >= 0 {
-		if err = tmp.Chown(uid, gid); err != nil {
-			return err
-		}
-	}
-	if err = tmp.Sync(); err != nil {
-		return err
-	}
-	if err = tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), path)
 }

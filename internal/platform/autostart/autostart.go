@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/rasikhq/penguintier/internal/atomicfile"
 )
 
 // FileName is the autostart file's name: the app ID plus ".desktop".
@@ -85,35 +87,15 @@ func switchedOff(data []byte) bool {
 	return false
 }
 
-// Enable writes the autostart file, replacing whatever is at path.
+// Enable writes the autostart file, replacing whatever is at path. The
+// write is atomic (see internal/atomicfile), so a crash never leaves a
+// half-written autostart file behind. Desktop files are not secret, and
+// 0644 is what desktops write themselves.
 func Enable(path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create autostart folder: %w", err)
 	}
-	// Write a temporary file and rename it over the old one, so a crash
-	// never leaves a half-written autostart file behind.
-	tmp, err := os.CreateTemp(filepath.Dir(path), "."+FileName+".*")
-	if err != nil {
-		return fmt.Errorf("write autostart file: %w", err)
-	}
-	// After a successful rename the temporary name is gone and Remove
-	// fails quietly; after an error it cleans up.
-	defer os.Remove(tmp.Name())
-
-	if _, err := tmp.WriteString(entry); err != nil {
-		_ = tmp.Close() // the write error is the one worth reporting
-		return fmt.Errorf("write autostart file: %w", err)
-	}
-	// CreateTemp makes the file 0600. Desktop files are not secret, and
-	// 0644 is what desktops write themselves.
-	if err := tmp.Chmod(0o644); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("write autostart file: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("write autostart file: %w", err)
-	}
-	if err := os.Rename(tmp.Name(), path); err != nil {
+	if err := atomicfile.WriteFile(path, []byte(entry), 0o644); err != nil {
 		return fmt.Errorf("write autostart file: %w", err)
 	}
 	return nil

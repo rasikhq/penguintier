@@ -118,6 +118,14 @@ jobs:
       - name: Build
         run: wails build -tags webkit2_41 -trimpath
 
+      # The build made frontend/dist, which main.go embeds, so vet and this
+      # module's Go tests can run now. golangci-lint covers the root module
+      # only, see .golangci.yml.
+      - name: go vet and test
+        run: |
+          go vet -tags webkit2_41 .
+          go test -tags webkit2_41 .
+
       # CI has no display, so only check argv handling: an unknown screen
       # name must exit 2 before any window opens.
       - name: Check the binary starts

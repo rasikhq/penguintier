@@ -5,8 +5,7 @@ macOS/Windows tray menu and makes ZeroTier's "Allow DNS Configuration" work
 on Linux through systemd-resolved. Unofficial app. Not affiliated with
 ZeroTier, Inc.
 
-- Plan (source of truth): `docs/plan.md`
-- Contracts and file ownership: `docs/architecture.md`
+- Design and contracts (source of truth): `docs/architecture.md`
 - How to test: `docs/testing.md`
 
 ## Stack
@@ -52,19 +51,16 @@ review:
 - Table-driven tests next to the code (`*_test.go`), fixtures in `testdata/`.
 - Each PR description explains the new Go concepts it introduces.
 
-### File ownership
+### Contracts
 
-Work is split into phases P0–P7. Each phase edits only the paths it owns
-(table in `docs/architecture.md`). Touching another phase's file must be
-called out in the PR description. Contract changes go into
-`docs/architecture.md` first.
+Contract changes (binary names, install paths, environment variables, file
+formats, D-Bus names) go into `docs/architecture.md` in the same PR as the
+code.
 
 ### go.mod / go.sum conflicts
 
-P0 already imports every third-party dependency (blank imports in
-`deps.go` files), so `go.mod` rarely changes. On a `go.mod`/`go.sum` merge
-conflict: keep the union of both sides, then run `go mod tidy`. Delete a
-package's `deps.go` once the package imports that dependency for real.
+On a `go.mod`/`go.sum` merge conflict, keep the union of both sides, then
+run `go mod tidy`.
 
 ### Other
 
@@ -75,4 +71,4 @@ package's `deps.go` once the package imports that dependency for real.
   used through a `replace` in `go.mod`). Keep their license files, mark
   every changed file, and list each change in its `PENGUINTIER.md`.
 - Commits: author `Rasikh Q. <rasikhqadeer98@gmail.com>` (set in the repo's
-  git config). No `Co-Authored-By:` trailers. One PR per phase into `master`.
+  git config). No `Co-Authored-By:` trailers. One PR per change into `master`.

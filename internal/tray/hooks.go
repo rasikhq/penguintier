@@ -5,9 +5,9 @@ import (
 	"errors"
 )
 
-// Hooks are the menu features that cmd/penguintier (phase P5, desktop
-// integration) provides: they touch the rest of the desktop, so they live
-// outside this package. StubHooks stands in for them in tests and tools.
+// Hooks are the menu features that cmd/penguintier provides: they touch
+// the rest of the desktop, so they live outside this package. StubHooks
+// stands in for them in tests and tools.
 //
 // An interface lists methods a type must have. Any type with these
 // methods can be used as Hooks; it doesn't have to say so (there is no

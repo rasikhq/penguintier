@@ -7,6 +7,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+
+- The tray reads `PENGUINTIER_LOG` too, like `penguintier-dnsd`: `debug`
+  logs each menu click and what it did.
+
 ## [0.1.0] - 2026-10-19
 
 The first release.

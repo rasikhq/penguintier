@@ -1,9 +1,9 @@
 # Penguintier architecture and contracts
 
-This file holds the agreements every phase builds against. The phases
-(P1–P7) run in parallel sessions, so **change a contract here first, in its
-own PR, before writing code that depends on the change.** The full plan, with
-background and reasoning, is in [plan.md](plan.md).
+This file describes how Penguintier is put together and the contracts
+between its parts: binary names, install paths, environment variables, file
+formats and D-Bus names. Change a contract here in the same PR as the code
+that depends on it.
 
 ## Overview
 
@@ -23,6 +23,34 @@ It has two Go modules:
 `ui/` is its own module so the main binaries stay static. Running
 `go build ./...` from the repo root does not include `ui/`, so use
 `make ui-build` for it.
+
+## Why this design
+
+The tray is written in Go with `fyne.io/systray`. It speaks the
+StatusNotifierItem protocol straight over D-Bus, so it needs no GTK, builds as
+a static binary and shows up on KDE, GNOME (with the AppIndicator extension),
+Cinnamon, XFCE, COSMIC and waybar. Tauri's and Electron's trays were ruled out
+because on Linux they go through libappindicator, which gives no click events
+and no tooltip. Rust with ksni was a strong option too, and Go won because it
+is easier for most contributors to read and review.
+
+The Join and About windows use Wails v2 with React and TypeScript. They run as
+a separate process that starts on demand and exits when closed, so the tray
+itself stays small and never loads a web engine.
+
+ZeroTier ignores "Allow DNS Configuration" on Linux. Penguintier fixes this
+with `penguintier-dnsd`, a small system service that copies each network's DNS
+servers and domain into systemd-resolved as a routing-only domain. It runs as
+its own unprivileged user, and a polkit rule lets that user change link DNS
+settings and nothing else. Where systemd-resolved is missing, "Enable DNS
+support…" switches the computer over, with a backup and an undo command.
+
+The tray talks to the ZeroTier service through its local JSON API, which needs
+the service's secret token. Instead of asking for a password on every start,
+the token helper copies it once, behind a polkit prompt, to
+`~/.zeroTierOneAuthToken` with mode 0600. `zerotier-cli` reads the same file.
+The trade-off is that any program running as that user can control ZeroTier,
+and `penguintier deauthorize` removes the copy.
 
 ## Binaries
 
@@ -54,6 +82,7 @@ It has two Go modules:
 | `internal/platform/autostart` | The "Start at Login" autostart file. |
 | `internal/platform/instance` | Single instance through a D-Bus name. |
 | `internal/platform/watcher` | Is a tray host (`org.kde.StatusNotifierWatcher`) running? The GNOME AppIndicator extension's state, and fix steps per desktop and distribution. |
+| `internal/atomicfile` | Writing a file so readers never see half of it (temporary file, fsync, rename). Every file Penguintier writes and later reads back goes through it. |
 | `internal/dnssetup` | "Enable DNS support…": which setups are supported (`Check`, pure), the backup and restore of the affected files, and the switch with its automatic undo (`Enable`, `Undo`). The tray uses the check, and `penguintier-dns-helper` runs the rest as root. |
 
 ## Contracts
@@ -93,7 +122,7 @@ It has two Go modules:
 | `PENGUINTIER_API_URL` | Base URL of the ZeroTier API, e.g. `http://127.0.0.1:9993`. Overrides port discovery. Used with `zt-mock`. |
 | `PENGUINTIER_TOKEN_FILE` | Read the API token from this file first. |
 | `PENGUINTIER_LIBEXEC_DIR` | Where to find `penguintier-ui`, `penguintier-token-helper` and `penguintier-dns-helper`. |
-| `PENGUINTIER_LOG` | Log level: `debug`, `info` (default), `warn`, `error`. Only `penguintier-dnsd` reads it so far, and the tray logs at `info`. |
+| `PENGUINTIER_LOG` | Log level of the tray and `penguintier-dnsd`: `debug`, `info` (default), `warn`, `error`. |
 
 These and the files below are documented for users in
 `packaging/man/penguintier.1`. Keep the man page in step when they change.
@@ -311,7 +340,7 @@ not fully restored (manual steps printed).
 
 ### Icons
 
-| Name | Use | Placeholder source (P2 replaces) |
+| Name | Use | Source files |
 |---|---|---|
 | `io.github.rasikhq.Penguintier` | app icon (hicolor theme) | `assets/icons/hicolor/{scalable,16x16…256x256}/apps/` |
 | `penguintier-online` | tray state: online | `assets/tray/penguintier-online.{svg,png}` |
@@ -388,7 +417,7 @@ The git tag is the only place the version number comes from. Tag
 `v0.1.0` gives packages `penguintier_0.1.0_amd64.deb` and
 `penguintier-0.1.0-1.x86_64.rpm`, and `penguintier --version` prints
 `penguintier 0.1.0`. Nothing in the code needs bumping for a release. The
-release checklist in testing.md ("P7") lists the files that describe a
+release checklist in testing.md lists the files that describe a
 release (CHANGELOG.md, the metainfo `<releases>`).
 
 ### Go toolchain
@@ -405,7 +434,7 @@ release (CHANGELOG.md, the metainfo `<releases>`).
 - When `govulncheck` in CI reports a standard-library issue, bump the
   `toolchain` line in both `go.mod` files.
 
-### Static build check (P0)
+### Static build check
 
 Checked on 2026-10-19 (Debian 13, GNOME 48 Wayland, Go 1.27.2,
 `fyne.io/systray` v1.12.2):
@@ -419,7 +448,7 @@ Checked on 2026-10-19 (Debian 13, GNOME 48 Wayland, Go 1.27.2,
     bus and exited cleanly on `systray.Quit()`.
   - On stock GNOME it logs `systray error: failed to register: The name
     org.kde.StatusNotifierWatcher was not provided by any .service files`.
-    That is the missing-tray-host case P5 detects (GNOME needs the
+    That is the missing-tray-host case the tray detects (GNOME needs the
     AppIndicator extension).
 
 ### Third-party code
@@ -432,35 +461,3 @@ patch fixes a crash when a menu click arrives while the menu is rebuilt.
 upstream, and `third_party/README.md` has the rules for that folder. The
 copy is its own Go module, so `go test ./...` from the root skips it.
 `make test` and CI test it separately.
-
-## Stubs
-
-P0 started every command as a stub that printed
-`<name>: not implemented yet`. All of them are implemented now, and
-`penguintier --version` prints `penguintier <version>`.
-
-## File ownership
-
-Each phase edits only the paths it owns. That is what lets phases run in
-parallel without merge conflicts. If a phase needs to change someone else's
-file, it calls this out in its PR description.
-
-| Paths | Owner |
-|---|---|
-| `internal/ztapi/`, `cmd/zt-mock/`, `cmd/ztctl/`, `cmd/penguintier-token-helper/`, `packaging/polkit/*.policy` | P1: ztapi, zt-mock, token helper |
-| `ui/**`, `assets/**` | P2: UI dialogs, icons and brand |
-| `internal/tray/`, `internal/platform/{clipboard,notify,open}/`, `third_party/fyne-systray/` | P3: tray core |
-| `internal/resolved/`, `internal/dnsrule/` (moved out of the daemon by P5), `cmd/penguintier-dnsd/`, `packaging/systemd/penguintier-dnsd.*`, `packaging/polkit/*.rules`, `packaging/sysusers/`, `scripts/zt-selftest-network.sh` | P4: DNS daemon |
-| `cmd/penguintier/`, `cmd/penguintier-dns-helper/`, `internal/doctor/`, `internal/dnsstatus/`, `internal/dnssetup/`, `internal/platform/{autostart,instance,watcher}/`, `scripts/dns-lab/` (may also touch P3's files) | P5: desktop integration |
-| `.goreleaser.yaml`, `cmd/licensegen/`, `packaging/{scripts,metainfo,desktop}/`, `packaging/systemd/*.preset`, `.github/workflows/{package,release}.yml` | P6: packaging |
-| `README.md`, `CHANGELOG.md`, `packaging/man/`, `docs/screenshots/`, `scripts/changelog-section.awk`, `.github/FUNDING.yml`, `funding.json` | P7: release |
-| `CLAUDE.md`, `docs/architecture.md`, `.golangci.yml`, `.gitignore`, `.github/workflows/ci.yml`, `.vscode/` | P0. Later changes are small and called out in the PR. |
-| `docs/plan.md` | read-only copy of the approved plan |
-
-Shared files, with rules:
-
-| Path | Rule |
-|---|---|
-| `go.mod`, `go.sum` | P0 already imports every dependency, so these rarely change. On a merge conflict, keep the union of both sides, then run `go mod tidy`. |
-| `Makefile` | Each phase edits only the recipes of its own targets (the `TODO(Px)` ones). |
-| `docs/testing.md` | Each phase edits only its own section. |

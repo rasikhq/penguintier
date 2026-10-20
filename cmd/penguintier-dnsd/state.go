@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
+
+	"github.com/rasikhq/penguintier/internal/atomicfile"
 )
 
 // The state file remembers which links we applied DNS settings to, and
@@ -51,10 +52,9 @@ func loadState(path string) (map[string]Config, error) {
 	return s.Links, nil
 }
 
-// saveState writes the state file atomically: first a temporary file in
-// the same directory, then a rename over the old file. A rename within one
-// directory is atomic on Linux, so a reader (or a crash) never sees a
-// half-written file.
+// saveState writes the state file. The write is atomic (see
+// internal/atomicfile), so a reader (or a crash) never sees a half-written
+// file. Mode 0600: the state holds no secrets, but nobody else needs it.
 func saveState(path string, links map[string]Config) error {
 	data, err := json.MarshalIndent(savedState{Links: links}, "", "  ")
 	if err != nil {
@@ -62,24 +62,7 @@ func saveState(path string, links map[string]Config) error {
 	}
 	data = append(data, '\n')
 
-	tmp, err := os.CreateTemp(filepath.Dir(path), "."+stateFileName+".*")
-	if err != nil {
-		return fmt.Errorf("save state: %w", err)
-	}
-	// If anything below fails, remove the temporary file. After a
-	// successful rename it no longer exists and Remove just fails quietly.
-	defer os.Remove(tmp.Name())
-
-	// CreateTemp already makes the file 0600 (only we can read it); the
-	// state holds no secrets, but nobody else needs it either.
-	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close() // the write error is the one worth reporting
-		return fmt.Errorf("save state: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("save state: %w", err)
-	}
-	if err := os.Rename(tmp.Name(), path); err != nil { //nolint:gosec // path is our own state file in $RUNTIME_DIRECTORY
+	if err := atomicfile.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("save state: %w", err)
 	}
 	return nil

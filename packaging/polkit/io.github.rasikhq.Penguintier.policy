@@ -3,9 +3,9 @@
  "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
  "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
 <!--
-  Polkit actions for "Authorize Penguintier…" (phase P1; see
-  docs/architecture.md, "ZeroTier API token") and "Enable DNS support…"
-  (phase P5; see "Enable DNS support" there).
+  Polkit actions for "Authorize Penguintier…" (see docs/architecture.md,
+  "ZeroTier API token") and "Enable DNS support…" (see "Enable DNS
+  support" there).
 
   The tray runs `pkexec /usr/libexec/penguintier/penguintier-token-helper`.
   pkexec looks for an action whose exec.path annotation matches that exact

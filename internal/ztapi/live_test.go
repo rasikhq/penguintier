@@ -22,7 +22,7 @@ func liveClient(t *testing.T) *Client {
 		t.Fatalf("Discover: %v", err)
 	}
 	if !c.HasToken() {
-		t.Skip("no API token found; see the P1 section of docs/testing.md to copy one")
+		t.Skip("no API token found; see \"Token helper and polkit policy\" in docs/testing.md to copy one")
 	}
 	return c
 }

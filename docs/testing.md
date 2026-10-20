@@ -1,8 +1,10 @@
 # Testing Penguintier
 
-How to test each part. **Each phase fills in only its own section** (see
-"File ownership" in [architecture.md](architecture.md)), so parallel PRs
-don't conflict here.
+How to test each part of Penguintier, from the unit tests to the release
+checklist. The sections follow the parts of the app, bottom up: the API
+client, the windows, the tray, the DNS daemon, the desktop integration,
+the packages and the release. [architecture.md](architecture.md) describes
+the parts themselves.
 
 ## Quick reference
 
@@ -17,7 +19,7 @@ don't conflict here.
 | `make live-test` | Tests against the real local ZeroTier service (build tag `live`). |
 | `make vuln` | govulncheck: known vulnerabilities in dependencies and the standard library. |
 | `make licenses` | Every dependency (of the root module and of `ui/`) has an allowed license (MIT, BSD, Apache-2.0, ISC, MPL-2.0). |
-| `make third-party-licenses` | `bin/THIRD_PARTY_LICENSES`: the license texts the packages install (see P6). |
+| `make third-party-licenses` | `bin/THIRD_PARTY_LICENSES`: the license texts the packages install (see "Third-party licenses" below). |
 
 CI (`.github/workflows/ci.yml`) runs the lint, test, build, vuln and
 licenses checks, plus a UI build on Ubuntu 24.04.
@@ -32,14 +34,14 @@ licenses checks, plus a UI build on Ubuntu 24.04.
   (`//go:build live`) and run only with `make live-test`.
 - Every PR lists its own manual test steps.
 
-## P0: Foundation
+## The whole build
 
 - `make lint test build ui-build` passes.
 - `go run ./cmd/penguintier --version` prints `penguintier dev`.
-- `make ui-dev` opens the placeholder Join window, and
-  `make ui-dev UI_SCREEN=about` opens About.
+- `make ui-dev` opens the Join window, and `make ui-dev UI_SCREEN=about`
+  opens About.
 
-## P1: ztapi, zt-mock, token helper
+## API client, zt-mock and the token helper
 
 ### Unit tests (`make test`)
 
@@ -165,7 +167,7 @@ make live-test
 PENGUINTIER_LIVE_JOIN=1 make live-test
 ```
 
-## P2: UI dialogs, icons and brand
+## Join and About windows, and the icons
 
 Automated (all run by `make ui-build`, so also by the CI UI job):
 
@@ -174,8 +176,7 @@ Automated (all run by `make ui-build`, so also by the CI UI job):
   text with spaces, dashes or words around the ID is cleaned.
 - `cd ui && go test -tags webkit2_41 .` (after `make ui-build`, which creates
   `frontend/dist`) checks the Go side: network ID validation and the
-  light/dark decision. CI does not run it yet (the CI `go test` covers the
-  root module only).
+  light/dark decision. The CI UI job runs it after its build.
 - The CI UI job checks that an unknown screen name exits 2.
 
 Join window (`make ui-dev UI_SCREEN=join`, or the built binary):
@@ -211,7 +212,7 @@ Light and dark:
   and sets `GTK_THEME=<theme>:dark` before GTK starts. A `GTK_THEME` you set
   yourself always wins: `GTK_THEME=Adwaita penguintier-ui about` is light.
 
-Launching from the tray (notes for P3 and P5):
+Launching from the tray:
 
 - Start `penguintier-ui` with `WEBKIT_DISABLE_DMABUF_RENDERER=1` in its
   environment (blank windows on some NVIDIA setups otherwise). The UI also
@@ -219,12 +220,12 @@ Launching from the tray (notes for P3 and P5):
 - Focus on GNOME Wayland: started from a background process with no
   window and no activation token (`setsid penguintier-ui join` from a
   script), the window still got keyboard focus with the caret in the field
-  (checked on Debian 13, GNOME 48, WebKitGTK 2.52). Recheck from the real
-  tray menu in P5.
+  (checked on Debian 13, GNOME 48, WebKitGTK 2.52). Started from the real
+  tray menu it does too (see "Manual: `make tray-mock`" below).
 - The window's Wayland app ID and X11 WM class are
-  `io.github.rasikhq.Penguintier`, so once the .desktop file is installed
-  the dash and Alt+Tab show the Penguintier icon. (Not checked yet: needs
-  the packaged .desktop file from P6.)
+  `io.github.rasikhq.Penguintier`, so once the package's .desktop file is
+  installed the dash and Alt+Tab show the Penguintier icon (checked on
+  GNOME, KDE Plasma and Cinnamon, see the test matrix at the end).
 
 Icons:
 
@@ -234,7 +235,7 @@ Icons:
 - After editing an SVG, run `python3 assets/render-icons.py` to rebuild
   the PNGs (and `ui/build/appicon.png`).
 
-## P3: Tray core
+## Tray
 
 ### Unit tests (`make test`)
 
@@ -284,7 +285,7 @@ Icons:
   with fake tools in `$PATH`.
 - `notify`: a fake notification service on a private `dbus-daemon`
   (skipped if `dbus-daemon` is not installed): body markup escaping, hints,
-  actions (a `default` action is always added, P5), and that an
+  actions (a `default` action is always added), and that an
   `ActionInvoked` signal from another program is ignored.
 - `open`: only `http`/`https` addresses reach a fake `xdg-open`.
 
@@ -329,7 +330,7 @@ extensions at login), then enable the extension. Without a tray host the
 tray logs `failed to register: The name org.kde.StatusNotifierWatcher was
 not provided`.
 
-How GNOME's extension (version 59) behaves, seen while testing P3:
+How GNOME's extension (version 59) behaves, seen while testing the tray:
 
 - It ignores the `ItemIsMenu` hint. A left click opens the menu after the
   double-click delay (it waits to see whether a second click follows). A
@@ -390,7 +391,7 @@ real `~/.config/penguintier/`.
   "Waiting for ZeroTier system service…" plus the bottom section. Switch
   back to `online`: the menu returns.
 - With `unauthorized`, the icon shows attention and the menu has
-  "Authorize Penguintier…" (P5 made it work, as its section describes).
+  "Authorize Penguintier…" (see "Desktop integration" below).
 - With `joining`, Join New Network… → enter any 16-hex ID → a disabled
   "Joining <id>…" row for 5 s, then the network with "Requesting
   configuration", and after 10 s more its name and address. On GNOME 48
@@ -416,14 +417,13 @@ never gets a configuration but still joins and leaves.
 - `sudo systemctl stop zerotier-one` → "Waiting for ZeroTier system
   service…" and the offline icon. Start it again → the menu comes back.
 
-## P4: DNS daemon
+## DNS daemon
 
 ### Unit tests (`make test`)
 
 - `internal/dnsrule`: which networks qualify (allowDNS on, status OK, an
   interface, a valid domain and at least one valid server) and the domain
-  and server clean-up. P5 moved this rule out of the daemon so the tray and
-  `doctor` share it.
+  and server clean-up. The tray's DNS row and `doctor` use the same rule.
 - `cmd/penguintier-dnsd/plan_test.go`: table tests for `Desired` (the rule
   applied to a network list, keyed by interface) and `Plan` (new
   link, nothing to do, someone else's link, drift, changed servers or
@@ -459,8 +459,9 @@ systemd-analyze security --offline=yes packaging/systemd/penguintier-dnsd.servic
 is not installed. `security` should say about **1.1 OK** (target: 2 or
 lower). What is left: host network access (it needs the interfaces and
 127.0.0.1:9993), AF_UNIX/AF_INET sockets, and no `PrivateUsers=` (systemd
-can't set up a user namespace inside LXC or rootless containers). The P6
-smoke test runs `verify` on the installed units in four distros.
+can't set up a user namespace inside LXC or rootless containers). The
+install smoke test (see "Packaging" below) runs `verify` on the installed
+units in four distros.
 
 ### Running it by hand
 
@@ -573,7 +574,7 @@ podman exec pt-e2e mount --make-rshared /
   scenario's interface with `ip tuntap add dev zt34000001 mode tap`. The
   daemon then sets 10.147.17.1 and `~home.arpa` on it.
 
-## P5: Desktop integration
+## Desktop integration
 
 ### Unit tests (`make test`)
 
@@ -625,11 +626,12 @@ podman exec pt-e2e mount --make-rshared /
   clipboard tool, pkexec or polkit agent, resolved (missing, installed
   but stopped, or not needed), the daemon (off or not installed) and a
   link managed by networkd.
-- `internal/tray`: new golden menus `dns-no-resolved` (with "Enable DNS
-  support…"), `dns-enabling` ("Switching DNS to systemd-resolved…"),
-  `dns-daemon-off`, `dns-link-managed`, `dns-pending`. Every other golden
-  menu now has the DNS rows too. `TestDNSRow` checks the row for every
-  state. Controller tests: the first-run prompt (once, only with
+- `internal/tray`: the golden menus for the DNS states, `dns-no-resolved`
+  (with "Enable DNS support…"), `dns-enabling` ("Switching DNS to
+  systemd-resolved…"), `dns-daemon-off`, `dns-link-managed` and
+  `dns-pending`, and the DNS rows in every other golden menu. `TestDNSRow`
+  checks the row for every state. Controller tests: the first-run prompt
+  (once, only with
   `PromptAuthorize`), a dismissed prompt stays quiet, `Connected` runs
   once and can turn on Start at Login, a DNS row change is one `SetTitle`,
   and "Enable DNS support…" (installed, said no, failed).
@@ -660,6 +662,7 @@ the background and its log goes to the journal
 (`journalctl --user -t penguintier -f`). `make run` and `go run` stay in
 the foreground anyway.
 
+- `PENGUINTIER_LOG=debug` also logs each menu click and what it did.
 - `bin/penguintier` finds `bin/penguintier-token-helper` next to itself.
   pkexec then shows polkit's generic "run as the super user" prompt,
   because the policy only names `/usr/libexec/penguintier/...`. For the
@@ -678,7 +681,7 @@ the foreground anyway.
   ```
 
 - Read the menu as the tray host gets it (labels, enabled state): see the
-  `busctl ... GetLayout` command in the P3 section.
+  `busctl ... GetLayout` command in the Tray section.
 
 ### Manual: on the GNOME test machine
 
@@ -748,7 +751,8 @@ are all in place. Quit any running Penguintier first.
    ```
 
    Then make the self-test network (`scripts/zt-selftest-network.sh`, see
-   P4), start its DNS server and turn on "Allow DNS Configuration" for it
+   "DNS daemon" above), start its DNS server and turn on "Allow DNS
+   Configuration" for it
    in the tray. Its submenu shows "DNS: waiting for systemd-resolved", and
    the menu offers "Enable DNS support…". Click it:
    - On an unsupported setup a dialog lists why and nothing changes.
@@ -808,7 +812,7 @@ problems. (The first attempt, with the PackageKit version, is what cut
 this machine's DNS and led to the rebuild. See "Enable DNS support" in
 architecture.md.)
 
-## P6: Packaging
+## Packaging
 
 ### Build the packages
 
@@ -926,7 +930,8 @@ systemctl status penguintier-dnsd.path
 - "Penguintier" shows up in the app launcher with its icon.
 - `penguintier-dnsd.path` is enabled and "active (waiting)" until
   `/var/lib/zerotier-one/authtoken.secret` exists, then it starts
-  `penguintier-dnsd.service`, which stays "active (running)" (see P4).
+  `penguintier-dnsd.service`, which stays "active (running)" (see "DNS
+  daemon" above).
 - `sudo apt purge penguintier` (or `sudo dnf remove penguintier`) removes
   every file and the enable symlink. The `penguintier-dns` system user stays
   on purpose (see `packaging/scripts/postremove.sh`).
@@ -935,7 +940,7 @@ systemctl status penguintier-dnsd.path
 path unit again (see `packaging/scripts/preinstall.sh` for why that needs a
 marker file).
 
-## P7: Release
+## Release
 
 ### Release checklist
 
@@ -992,7 +997,8 @@ afterwards.
 Most distributions are built on Debian, Ubuntu or Fedora, and a desktop's
 tray works the same on every distribution. So the matrix pairs each of the
 three base distributions with a different desktop: three machines cover
-three distribution families and three desktops. CI's install smoke test (P6) already covers
+three distribution families and three desktops. CI's install smoke test (see
+"Packaging") already covers
 installing, upgrading and removing the packages in `debian:12`,
 `debian:13`, `ubuntu:24.04` and `fedora:latest` containers on every PR, so
 the machines focus on the desktop.
@@ -1122,11 +1128,12 @@ with Ctrl+C when done.
    Keep `penguintier doctor --json` with the results.
 8. To test DNS where systemd-resolved runs, run
    `bash zt-selftest-network.sh` (needs `curl` and `jq`), start the DNS
-   server it names (see "End-to-end test" in P4), and check Allow DNS
+   server it names (see "End-to-end test" under "DNS daemon"), and check
+   Allow DNS
    Configuration in the test network's submenu. The row says
    "DNS: applied" and `resolvectl query host.pt.test` answers through the
-   ZeroTier interface. Where it doesn't (Debian), see "Enable DNS
-   support…" in P5, then undo it with
+   ZeroTier interface. Where it doesn't (Debian), see step 7 of the GNOME
+   test machine steps under "Desktop integration", then undo it with
    `pkexec /usr/libexec/penguintier/penguintier-dns-helper undo`.
    `bash zt-selftest-network.sh down` at the end.
 9. Remove the package with `sudo apt remove penguintier` (or
@@ -1143,8 +1150,8 @@ Release candidate 0.1.0. "CI" = the container smoke test in
 
 | Setup | Date | Package | Result | Notes |
 |---|---|---|---|---|
-| Containers: install, upgrade, remove, purge (`smoke-test.sh`) | 2026-10-19 | RC snapshot of the P7 PR | pass | Run locally on debian:12, ubuntu:24.04 and fedora:latest (Fedora 44). CI runs all four images on every PR. The man page installs, and lintian no longer reports `no-manual-page`. |
+| Containers: install, upgrade, remove, purge (`smoke-test.sh`) | 2026-10-19 | release-candidate snapshot | pass | Run locally on debian:12, ubuntu:24.04 and fedora:latest (Fedora 44). CI runs all four images on every PR. The man page installs, and lintian no longer reports `no-manual-page`. |
 | Release build from a tag (throwaway clone tagged v0.1.0) | 2026-10-19 | 0.1.0 | pass | `penguintier_0.1.0_amd64.deb`, `penguintier-0.1.0-1.x86_64.rpm`, `SHA256SUMS` checks out, and `--version` prints `penguintier 0.1.0`. |
-| Debian 13 GNOME 48 Wayland (dev machine) | 2026-10-19 | snapshot 9bf93c4, then snapshot a34529e (the RC) | pass | Every P5 manual step, including "Enable DNS support…" (see P5). With the RC: the upgrade installs over the earlier build, the tray starts from the app grid without a prompt, the Join and About windows show Penguintier's icon in the dash and Alt+Tab, `man penguintier` opens, and `penguintier doctor` finds no problems. An autostart file written by an earlier build keeps its old contents (no `TryExec`) until Start at Login is turned off and on again. Only builds from before 0.1.0 wrote such a file. |
-| Fedora 44 KDE Plasma 6.6 (Wayland, VM) | 2026-10-19 | snapshot of the P7 PR, with the WM_CLASS fix | pass | The rpm installs (dnf pulls in webkit2gtk4.1 and xclip) with SELinux enforcing, and the audit log has no denials (the daemon runs as `unconfined_service_t`). The icon shows in KDE's tray (`kded6`), sometimes under the ^ arrow at first. KDE's polkit agent shows the first-run prompt, and the token copy is 0600. Start at Login runs as `app-io.github.rasikhq.Penguintier@autostart.service` at login, with no prompt. "Allow DNS Configuration" → "DNS: applied", `~pt.test` with no default route, `host.pt.test` resolves through the ZeroTier link. Copying works with wl-copy. The Join window follows KDE's dark theme and has the right taskbar icon. KDE shows the tooltip, and underscores are right with KDE's spec-style escaping. `penguintier doctor` finds no problems. `dnf remove` stops the daemon, which removes its DNS settings. Cosmetic: KDE draws a submenu's `>` arrow right against a long label on items that also have a check box. That is Plasma's layout. |
-| Linux Mint 22 Cinnamon (X11, VM) | 2026-10-19 | snapshot of the P7 PR | pass, after one fix | The .deb installs on the Ubuntu 24.04 base (pulls in wl-clipboard and xclip). The icon shows in Cinnamon's tray (`xapp-sn-watcher`). The first-run prompt comes from Cinnamon's polkit agent and writes a 0600 token copy. Start at Login brings the tray back after a new login, with no prompt. "Allow DNS Configuration" in the menu → "DNS: applied", `~pt.test` on the ZeroTier link, `host.pt.test` resolves through it and other names don't. Copying works with xclip, notifications show. Underscores and "…" are right, and Cinnamon shows the tooltip. `penguintier doctor` finds no problems. `apt remove` stops the daemon, which removes its DNS settings. This run found that the Join and About windows had a blank taskbar icon (their WM_CLASS was wrong, and GTK dropped the 512 px window icon), and the P7 PR fixed it. A tray that is already running keeps running after `apt remove` until you quit it or log out (the README says so). |
+| Debian 13 GNOME 48 Wayland (dev machine) | 2026-10-19 | snapshot 9bf93c4, then snapshot a34529e (the RC) | pass | Every manual step under "Desktop integration", including "Enable DNS support…". With the RC: the upgrade installs over the earlier build, the tray starts from the app grid without a prompt, the Join and About windows show Penguintier's icon in the dash and Alt+Tab, `man penguintier` opens, and `penguintier doctor` finds no problems. An autostart file written by an earlier build keeps its old contents (no `TryExec`) until Start at Login is turned off and on again. Only builds from before 0.1.0 wrote such a file. |
+| Fedora 44 KDE Plasma 6.6 (Wayland, VM) | 2026-10-19 | release-candidate snapshot, with the WM_CLASS fix | pass | The rpm installs (dnf pulls in webkit2gtk4.1 and xclip) with SELinux enforcing, and the audit log has no denials (the daemon runs as `unconfined_service_t`). The icon shows in KDE's tray (`kded6`), sometimes under the ^ arrow at first. KDE's polkit agent shows the first-run prompt, and the token copy is 0600. Start at Login runs as `app-io.github.rasikhq.Penguintier@autostart.service` at login, with no prompt. "Allow DNS Configuration" → "DNS: applied", `~pt.test` with no default route, `host.pt.test` resolves through the ZeroTier link. Copying works with wl-copy. The Join window follows KDE's dark theme and has the right taskbar icon. KDE shows the tooltip, and underscores are right with KDE's spec-style escaping. `penguintier doctor` finds no problems. `dnf remove` stops the daemon, which removes its DNS settings. Cosmetic: KDE draws a submenu's `>` arrow right against a long label on items that also have a check box. That is Plasma's layout. |
+| Linux Mint 22 Cinnamon (X11, VM) | 2026-10-19 | release-candidate snapshot | pass, after one fix | The .deb installs on the Ubuntu 24.04 base (pulls in wl-clipboard and xclip). The icon shows in Cinnamon's tray (`xapp-sn-watcher`). The first-run prompt comes from Cinnamon's polkit agent and writes a 0600 token copy. Start at Login brings the tray back after a new login, with no prompt. "Allow DNS Configuration" in the menu → "DNS: applied", `~pt.test` on the ZeroTier link, `host.pt.test` resolves through it and other names don't. Copying works with xclip, notifications show. Underscores and "…" are right, and Cinnamon shows the tooltip. `penguintier doctor` finds no problems. `apt remove` stops the daemon, which removes its DNS settings. This run found that the Join and About windows had a blank taskbar icon (their WM_CLASS was wrong, and GTK dropped the 512 px window icon), and the release-candidate PR fixed it. A tray that is already running keeps running after `apt remove` until you quit it or log out (the README says so). |

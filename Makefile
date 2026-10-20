@@ -2,7 +2,6 @@
 #
 # The Go code lives in the root module (no cgo). ui/ is a separate Go module
 # (Wails needs cgo + webkit), so the ui-* targets run inside ui/.
-# Targets marked TODO(Px) are filled in by that phase.
 
 GO ?= go
 # Where `go install` puts binaries: $GOBIN if set, else $GOPATH/bin (~/go/bin).

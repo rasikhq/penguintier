@@ -14,7 +14,6 @@
 //   - client.go: the HTTP client (Health, Status, Networks, Join, ...).
 //   - saved.go: the saved-networks store, and the one-time import from
 //     ZeroTier's official desktop app.
-//   - atomic.go: writing a file so readers never see half of it.
 //
 // The ztmock subpackage is a fake service for tests and for cmd/zt-mock.
 //

@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/rasikhq/penguintier/internal/atomicfile"
 )
 
 // appState is what the tray remembers between runs, in
@@ -60,8 +62,9 @@ func loadState(path string) (appState, error) {
 	return s, nil
 }
 
-// saveState writes the state file atomically: a temporary file first, then
-// a rename over the old one, so a crash never leaves half a file.
+// saveState writes the state file, mode 0600 (only we can read it). The
+// write is atomic (see internal/atomicfile), so a crash never leaves half
+// a file.
 func saveState(path string, s appState) error {
 	data, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
@@ -72,23 +75,7 @@ func saveState(path string, s appState) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create config directory: %w", err)
 	}
-	// CreateTemp makes the file with mode 0600 (only we can read it).
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".state.json.*")
-	if err != nil {
-		return fmt.Errorf("save state: %w", err)
-	}
-	// After a successful rename the temporary name is gone and Remove
-	// fails quietly; after an error it cleans up.
-	defer os.Remove(tmp.Name())
-
-	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close() // the write error is the one worth reporting
-		return fmt.Errorf("save state: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("save state: %w", err)
-	}
-	if err := os.Rename(tmp.Name(), path); err != nil {
+	if err := atomicfile.WriteFile(path, data, 0o600); err != nil {
 		return fmt.Errorf("save state: %w", err)
 	}
 	return nil

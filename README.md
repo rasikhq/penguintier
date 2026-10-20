@@ -353,7 +353,7 @@ make package                     # .deb and .rpm into dist/
 Bug reports, test results from more desktops and pull requests are all
 welcome. Before writing code, have a look at these:
 
-- [CLAUDE.md](CLAUDE.md) holds the project rules: Go style, file ownership
+- [CLAUDE.md](CLAUDE.md) holds the project rules: Go style, contracts
   and commit conventions. Penguintier is built with the help of Claude,
   Anthropic's AI assistant, which works from the same file.
 - [docs/architecture.md](docs/architecture.md) explains how the parts fit

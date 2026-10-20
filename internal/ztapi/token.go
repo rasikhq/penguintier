@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/rasikhq/penguintier/internal/atomicfile"
 )
 
 // TokenLength is the length of a ZeroTier API token. The service generates
@@ -47,7 +49,7 @@ func UserTokenPath() (string, error) {
 // removed first (penguintier-token-helper prints a trailing newline).
 //
 // The token is checked before anything is written, and the file is written
-// atomically (see writeFileAtomic): a reader never sees a half-written
+// atomically (see internal/atomicfile): a reader never sees a half-written
 // token, and a token file with the wrong mode never exists, not even for a
 // moment.
 func WriteUserToken(token string) (string, error) {
@@ -59,7 +61,7 @@ func WriteUserToken(token string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := writeFileAtomic(path, []byte(token), 0o600); err != nil {
+	if err := atomicfile.WriteFile(path, []byte(token), 0o600); err != nil {
 		return "", fmt.Errorf("save API token: %w", err)
 	}
 	return path, nil

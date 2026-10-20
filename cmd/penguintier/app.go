@@ -22,10 +22,16 @@ import (
 	"github.com/rasikhq/penguintier/internal/ztapi"
 )
 
+// dbusTimeout bounds the session bus calls made in this file. The desktop
+// answers in milliseconds; this only matters when something hangs.
+const dbusTimeout = 3 * time.Second
+
 // startTray runs the tray until the user quits. It is a variable holding a
 // function so main_test.go can swap in a stand-in: the real tray blocks
 // until Quit.
 var startTray = func(autostartRun bool, stderr io.Writer) int {
+	setLogLevel(os.Getenv(envLog))
+
 	// The context is cancelled on Ctrl+C or SIGTERM, which quits the tray
 	// cleanly.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -46,7 +52,12 @@ func runTray(ctx context.Context, autostartRun bool) error {
 	if errors.Is(err, instance.ErrAlreadyRunning) {
 		slog.Info("Penguintier is already running")
 		if !autostartRun {
-			if err := instance.Activate(ctx); err != nil {
+			// With a deadline, like every other bus call: a stuck first
+			// copy must not hang this one.
+			activateCtx, cancel := context.WithTimeout(ctx, dbusTimeout)
+			err := instance.Activate(activateCtx)
+			cancel()
+			if err != nil {
 				slog.Warn("cannot reach the running Penguintier", "err", err)
 			}
 		}
@@ -216,14 +227,14 @@ func noticeMissingTrayHost(ctx context.Context, n *notify.Notifier) {
 	if err != nil {
 		return
 	}
-	keyCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	keyCtx, cancel := context.WithTimeout(ctx, dbusTimeout)
 	login := watcher.LoginKey(keyCtx, conn)
 	cancel()
 	if watcher.NoticeShown(login) {
 		return
 	}
 	ready := func() bool {
-		checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		checkCtx, cancel := context.WithTimeout(ctx, dbusTimeout)
 		defer cancel()
 		status, err := watcher.Check(checkCtx, conn)
 		// When the check itself fails we can't tell; don't nag then.
@@ -234,7 +245,10 @@ func noticeMissingTrayHost(ctx context.Context, n *notify.Notifier) {
 	}
 
 	desktop := watcher.DetectDesktop()
-	advice := watcher.AdviceFor(desktop, watcher.CheckExtension(ctx, conn))
+	extCtx, cancel := context.WithTimeout(ctx, dbusTimeout)
+	extension := watcher.CheckExtension(extCtx, conn)
+	cancel()
+	advice := watcher.AdviceFor(desktop, extension)
 	slog.Warn("no tray host: the icon is invisible", "desktop", desktop.String(), "advice", advice.Text())
 
 	shown := showNotice(ctx, n, notify.Notification{

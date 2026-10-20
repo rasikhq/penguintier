@@ -196,33 +196,6 @@ func TestSavedStoreAtomicFailureKeepsOldFile(t *testing.T) {
 	assertOnlyFiles(t, dir, "saved_networks.json")
 }
 
-// TestWriteFileAtomicCleansUpOnFailure makes the final rename fail and
-// checks that the temporary file is removed. This works even as root.
-func TestWriteFileAtomicCleansUpOnFailure(t *testing.T) {
-	dir := t.TempDir()
-	target := filepath.Join(dir, "target")
-	// A non-empty directory can't be replaced by a file.
-	if err := os.MkdirAll(filepath.Join(target, "child"), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := writeFileAtomic(target, []byte("data"), 0o600); err == nil {
-		t.Fatal("writeFileAtomic over a directory succeeded")
-	}
-	assertOnlyFiles(t, dir, "target")
-}
-
-func TestWriteFileAtomicReplaces(t *testing.T) {
-	dir := t.TempDir()
-	target := filepath.Join(dir, "file")
-	for _, content := range []string{"first", "second, longer", "3"} {
-		if err := writeFileAtomic(target, []byte(content), 0o640); err != nil {
-			t.Fatalf("writeFileAtomic: %v", err)
-		}
-		assertFile(t, target, content, 0o640)
-	}
-	assertOnlyFiles(t, dir, "file")
-}
-
 func TestImportDesktopUI(t *testing.T) {
 	s := newTestStore(t)
 	if err := os.MkdirAll(filepath.Dir(s.DesktopUIPath), 0o700); err != nil {

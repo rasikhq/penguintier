@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/rasikhq/penguintier/internal/atomicfile"
 )
 
 // savedVersion is the version number written into saved_networks.json. Bump
@@ -117,7 +119,7 @@ func (s *SavedStore) Load() (map[NetworkID]SavedNetwork, error) {
 }
 
 // Save replaces the file with nets. The write is atomic (see
-// writeFileAtomic), and the file is private to the user (mode 0600).
+// internal/atomicfile), and the file is private to the user (mode 0600).
 func (s *SavedStore) Save(nets map[NetworkID]SavedNetwork) error {
 	if nets == nil {
 		// A nil map would be written as "networks": null.
@@ -132,7 +134,7 @@ func (s *SavedStore) Save(nets map[NetworkID]SavedNetwork) error {
 	if err := os.MkdirAll(filepath.Dir(s.Path), 0o700); err != nil {
 		return fmt.Errorf("create config directory: %w", err)
 	}
-	if err := writeFileAtomic(s.Path, data, 0o600); err != nil {
+	if err := atomicfile.WriteFile(s.Path, data, 0o600); err != nil {
 		return fmt.Errorf("save networks: %w", err)
 	}
 	return nil

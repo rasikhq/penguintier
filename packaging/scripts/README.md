@@ -14,5 +14,5 @@ file).
 | `postremove.sh` | postrm | %postun | `systemctl daemon-reload`. |
 
 `smoke-test.sh` is not shipped. It installs the built package in a
-container and checks it, as "P6: Packaging" in
+container and checks it, as "Packaging" in
 [docs/testing.md](../../docs/testing.md) describes.
