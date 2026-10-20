@@ -70,5 +70,3 @@ run `go mod tidy`.
 - `third_party/` holds patched copies of dependencies (now fyne.io/systray,
   used through a `replace` in `go.mod`). Keep their license files, mark
   every changed file, and list each change in its `PENGUINTIER.md`.
-- Commits: author `Rasikh Q. <rasikhqadeer98@gmail.com>` (set in the repo's
-  git config). No `Co-Authored-By:` trailers. One PR per change into `master`.
