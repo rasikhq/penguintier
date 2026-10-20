@@ -84,13 +84,13 @@ needs.
 On Debian, Ubuntu, Linux Mint and Pop!_OS:
 
 ```bash
-sudo apt install ./penguintier_0.1.0_amd64.deb
+sudo apt install ./penguintier_0.1.1_amd64.deb
 ```
 
 On Fedora:
 
 ```bash
-sudo dnf install ./penguintier-0.1.0-1.x86_64.rpm
+sudo dnf install ./penguintier-0.1.1-1.x86_64.rpm
 ```
 
 To verify the download, put `SHA256SUMS` from the same release next to it

@@ -7,10 +7,25 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-20
+
+A cleanup release after the first one: nothing new in the menu, a few
+things made sturdier, and a tidier code base for contributors.
+
 ### Changed
 
 - The tray reads `PENGUINTIER_LOG` too, like `penguintier-dnsd`: `debug`
   logs each menu click and what it did.
+- Every D-Bus call the tray makes has a deadline now, so a stuck desktop
+  service can't hang it. Before, a second `penguintier` could wait forever
+  on a stuck first one, and the tray's host detection had no limit either.
+- Every file Penguintier writes and reads back (the token copy, saved
+  networks, the state files, the autostart entry, the DNS switch's backup)
+  goes through one atomic write that also fsyncs. The tray's and the DNS
+  daemon's state files were not fsynced before.
+- For contributors: `docs/testing.md` is organised by component, the
+  leftovers of the build plan are gone, and CI runs the UI module's Go
+  tests too.
 
 ## [0.1.0] - 2026-10-19
 
@@ -60,5 +75,6 @@ The first release.
 - .deb and .rpm packages for x86_64, with the `penguintier(1)` man page and
   the licenses of all bundled third-party code.
 
-[Unreleased]: https://github.com/rasikhq/penguintier/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/rasikhq/penguintier/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/rasikhq/penguintier/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/rasikhq/penguintier/releases/tag/v0.1.0
